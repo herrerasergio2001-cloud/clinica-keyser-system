@@ -15,25 +15,6 @@ services:
       start_period: 10s
       retries: 10
 
-  orthanc:
-    image: orthancteam/orthanc:latest
-    restart: unless-stopped
-    environment:
-      ORTHANC__REGISTERED_USERS: '{"${ORTHANC_USER:?Set ORTHANC_USER in Coolify}":"${ORTHANC_PASSWORD:?Set ORTHANC_PASSWORD in Coolify}"}'
-    expose:
-      - "8042"
-      - "4242"
-    volumes:
-      - orthanc_data:/var/lib/orthanc/db
-      - orthanc_worklists:/var/lib/orthanc/worklists
-      - ./docker/orthanc/orthanc.json:/etc/orthanc/orthanc.json:ro
-    healthcheck:
-      test: ["CMD", "python3", "/probes/test-aliveness.py"]
-      interval: 30s
-      timeout: 10s
-      start_period: 30s
-      retries: 5
-
   api:
     build:
       context: .
@@ -50,15 +31,21 @@ services:
       API_PORT: 3001
       CORS_ORIGIN: ${CORS_ORIGIN:?Set CORS_ORIGIN in Coolify}
       LOCAL_STORAGE_ROOT: /app/storage
-      ORTHANC_URL: http://orthanc:8042
-      ORTHANC_DICOM_PORT: 4242
-      ORTHANC_AET: ${ORTHANC_AET:-ORTHANC}
-      ORTHANC_USER: ${ORTHANC_USER:?Set ORTHANC_USER in Coolify}
-      ORTHANC_PASSWORD: ${ORTHANC_PASSWORD:?Set ORTHANC_PASSWORD in Coolify}
-      DICOM_INTEGRATION_ENABLED: ${DICOM_INTEGRATION_ENABLED:-false}
     depends_on:
       postgres:
         condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "const net=require('node:net');const socket=net.connect(3001,'127.0.0.1',()=>{socket.end();process.exit(0)});socket.on('error',()=>process.exit(1));setTimeout(()=>process.exit(1),3000)",
+        ]
+      interval: 15s
+      timeout: 5s
+      start_period: 30s
+      retries: 10
     expose:
       - "3001"
     volumes:
@@ -77,12 +64,22 @@ services:
       NEXT_TELEMETRY_DISABLED: "1"
     depends_on:
       api:
-        condition: service_started
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000').then(response=>process.exit(response.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 15s
+      timeout: 5s
+      start_period: 30s
+      retries: 10
     expose:
       - "3000"
 
 volumes:
   postgres_data:
-  orthanc_data:
-  orthanc_worklists:
   api_storage:
