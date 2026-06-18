@@ -1,0 +1,88 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-clinic_keyser}
+      POSTGRES_USER: ${POSTGRES_USER:-clinic}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in Coolify}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 10s
+      timeout: 5s
+      start_period: 10s
+      retries: 10
+
+  orthanc:
+    image: orthancteam/orthanc:latest
+    restart: unless-stopped
+    environment:
+      ORTHANC__REGISTERED_USERS: '{"${ORTHANC_USER:?Set ORTHANC_USER in Coolify}":"${ORTHANC_PASSWORD:?Set ORTHANC_PASSWORD in Coolify}"}'
+    expose:
+      - "8042"
+      - "4242"
+    volumes:
+      - orthanc_data:/var/lib/orthanc/db
+      - orthanc_worklists:/var/lib/orthanc/worklists
+      - ./docker/orthanc/orthanc.json:/etc/orthanc/orthanc.json:ro
+    healthcheck:
+      test: ["CMD", "python3", "/probes/test-aliveness.py"]
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER:-clinic}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in Coolify}@postgres:5432/${POSTGRES_DB:-clinic_keyser}?schema=public
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?Set JWT_ACCESS_SECRET in Coolify}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?Set JWT_REFRESH_SECRET in Coolify}
+      JWT_ACCESS_EXPIRES_IN: ${JWT_ACCESS_EXPIRES_IN:-15m}
+      JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-7d}
+      API_HOST: 0.0.0.0
+      API_PORT: 3001
+      CORS_ORIGIN: ${CORS_ORIGIN:?Set CORS_ORIGIN in Coolify}
+      LOCAL_STORAGE_ROOT: /app/storage
+      ORTHANC_URL: http://orthanc:8042
+      ORTHANC_DICOM_PORT: 4242
+      ORTHANC_AET: ${ORTHANC_AET:-ORTHANC}
+      ORTHANC_USER: ${ORTHANC_USER:?Set ORTHANC_USER in Coolify}
+      ORTHANC_PASSWORD: ${ORTHANC_PASSWORD:?Set ORTHANC_PASSWORD in Coolify}
+      DICOM_INTEGRATION_ENABLED: ${DICOM_INTEGRATION_ENABLED:-false}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    expose:
+      - "3001"
+    volumes:
+      - api_storage:/app/storage
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?Set NEXT_PUBLIC_API_URL in Coolify}
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?Set NEXT_PUBLIC_API_URL in Coolify}
+      NEXT_TELEMETRY_DISABLED: "1"
+    depends_on:
+      api:
+        condition: service_started
+    expose:
+      - "3000"
+
+volumes:
+  postgres_data:
+  orthanc_data:
+  orthanc_worklists:
+  api_storage:

@@ -1,0 +1,53 @@
+# Dependencies
+node_modules/
+
+# Framework and build output
+.next/
+dist/
+build/
+out/
+coverage/
+*.tsbuildinfo
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Environment variables and local secrets
+.env
+.env.*
+!.env.example
+
+# Local runtime data
+/storage/
+/apps/api/storage/
+
+# Temporary files and caches
+.cache/
+.tmp/
+tmp/
+temp/
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Editors and IDEs
+.idea/
+.vscode/
+
+# Test and tool caches
+.eslintcache
+.parcel-cache/
+.turbo/

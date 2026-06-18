@@ -1,0 +1,23 @@
+{
+  "Name": "Clinica Keyser Orthanc",
+  "StorageDirectory": "/var/lib/orthanc/db",
+  "IndexDirectory": "/var/lib/orthanc/db",
+  "HttpServerEnabled": true,
+  "HttpPort": 8042,
+  "RemoteAccessAllowed": true,
+  "AuthenticationEnabled": true,
+  "DicomServerEnabled": true,
+  "DicomAet": "ORTHANC",
+  "DicomPort": 4242,
+  "DicomAlwaysAllowEcho": true,
+  "DicomAlwaysAllowStore": true,
+  "DicomCheckCalledAet": false,
+  "DicomCheckModalityHost": false,
+  "DicomModalities": {
+    "SONOSCAPE": ["SONOSCAPE", "IP_DEL_ULTRASONIDO", 104]
+  },
+  "Worklists": {
+    "Enable": true,
+    "Database": "/var/lib/orthanc/worklists"
+  }
+}

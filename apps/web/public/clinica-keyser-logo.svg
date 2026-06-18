@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 120" role="img" aria-labelledby="title desc">
+  <title id="title">Clínica Keyser</title>
+  <desc id="desc">Logo institucional de Clínica Keyser</desc>
+  <defs>
+    <linearGradient id="g" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#087f8c"/>
+      <stop offset="1" stop-color="#8fd5c8"/>
+    </linearGradient>
+  </defs>
+  <rect width="360" height="120" rx="24" fill="#ffffff"/>
+  <circle cx="62" cy="60" r="38" fill="url(#g)"/>
+  <path d="M58 35h8v20h20v8H66v22h-8V63H38v-8h20V35Z" fill="#ffffff"/>
+  <path d="M106 43c0-13 11-23 25-23 10 0 19 5 23 13l-12 7c-2-5-6-8-12-8-7 0-12 5-12 12s5 12 12 12c6 0 10-3 12-8l12 7c-4 8-13 13-24 13-14 0-24-10-24-25Z" fill="#10212b"/>
+  <path d="M164 21h13v46h-13V21Zm31 0h15l-17 21 19 25h-16l-18-24 17-22Z" fill="#10212b"/>
+  <text x="108" y="93" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700" fill="#087f8c">Clínica Keyser</text>
+  <text x="229" y="93" font-family="Arial, Helvetica, sans-serif" font-size="12" fill="#64748b">ERP/EMR</text>
+</svg>

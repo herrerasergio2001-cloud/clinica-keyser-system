@@ -1,0 +1,5 @@
+import { ClinicSettingsPage } from '../../_components/medical-admin';
+
+export default function Page() {
+  return <ClinicSettingsPage />;
+}
