@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { AuditAction, User } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
+import { Response } from 'express';
 import { AuditService } from '../audit/audit.service';
 import { UsersRepository } from '../users/users.repository';
 import { LoginDto } from './dto/login.dto';
@@ -19,6 +20,30 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
   ) {}
+
+  setAuthCookies(response: Response, tokens: { accessToken: string; refreshToken: string }) {
+    const common = {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'lax' as const,
+      domain: this.config.get<string>('AUTH_COOKIE_DOMAIN') ?? '.clinicakeyser.com',
+      path: '/',
+    };
+    response.cookie('ck_access_token', tokens.accessToken, { ...common, maxAge: 15 * 60 * 1000 });
+    response.cookie('ck_refresh_token', tokens.refreshToken, { ...common, maxAge: 7 * 24 * 60 * 60 * 1000 });
+  }
+
+  clearAuthCookies(response: Response) {
+    const options = {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'lax' as const,
+      domain: this.config.get<string>('AUTH_COOKIE_DOMAIN') ?? '.clinicakeyser.com',
+      path: '/',
+    };
+    response.clearCookie('ck_access_token', options);
+    response.clearCookie('ck_refresh_token', options);
+  }
 
   async login(dto: LoginDto, ipAddress?: string, userAgent?: string) {
     const user = await this.users.findByEmail(dto.email);

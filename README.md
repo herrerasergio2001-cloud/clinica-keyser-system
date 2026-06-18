@@ -56,17 +56,12 @@ npm run dev
 - Orthanc red local: http://192.168.0.19:8042
 - PostgreSQL: localhost:5432
 
-## Credenciales Iniciales
+## Acceso inicial
 
-El seed crea estos usuarios principales:
-
-- Administrador RIS/PACS: `admin@clinickeyser.com` / `admin123`
-- Medico: `medico@clinickeyser.com` / `medico123`
-- Recepcion: `recepcion@clinickeyser.com` / `recepcion123`
-- Farmacia: `farmacia@clinickeyser.com` / `farmacia123`
-- Laboratorio: `laboratorio@clinickeyser.com` / `laboratorio123`
-
-Los usuarios demo heredados usan `Password123!`.
+El seed no publica ni reutiliza contraseñas de prueba. Para crear el administrador
+inicial puede definir `SEED_ADMIN_PASSWORD` antes de ejecutar el seed. En una
+instalación existente, restablezca la contraseña mediante el script seguro
+`database/scripts/reset-password.mjs`.
 
 ## Scripts
 

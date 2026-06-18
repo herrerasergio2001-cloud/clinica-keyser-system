@@ -105,7 +105,7 @@ function AdminShell({ title, subtitle, children, accessModule = 'panel' }: { tit
 export function UsersPage({ mode, userId }: { mode?: 'new' | 'edit'; userId?: string }) {
   const router = useRouter();
   const [users, setUsers] = useState<Doctor[]>([]);
-  const [form, setForm] = useState({ email: '', fullName: '', phone: '', password: 'Password123!', role: 'DOCTOR', isActive: true, professionalName: '', specialty: '', minsaCode: '' });
+  const [form, setForm] = useState({ email: '', fullName: '', phone: '', password: '', role: 'DOCTOR', isActive: true, professionalName: '', specialty: '', minsaCode: '' });
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);

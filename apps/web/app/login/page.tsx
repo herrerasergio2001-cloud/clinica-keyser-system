@@ -2,7 +2,7 @@
 
 import { FormEvent, ReactNode, Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Activity, AlertTriangle, Loader2, LockKeyhole } from 'lucide-react';
+import { AlertTriangle, Loader2, LockKeyhole } from 'lucide-react';
 
 const apiBase = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
 
@@ -18,8 +18,8 @@ function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const next = searchParams.get('next') || '/panel';
-  const [email, setEmail] = useState('admin@clinickeyser.com');
-  const [password, setPassword] = useState('admin123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
@@ -40,10 +40,11 @@ function LoginForm() {
     try {
       const response = await fetch(`${apiBase}/api/auth/login`, {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
-      if (!response.ok) throw new Error('Credenciales inválidas o usuario no creado en seed.');
+      if (!response.ok) throw new Error('Correo o contraseña incorrectos.');
       const tokens = (await response.json()) as { accessToken: string; refreshToken: string };
       localStorage.setItem('accessToken', tokens.accessToken);
       localStorage.setItem('refreshToken', tokens.refreshToken);
@@ -76,30 +77,17 @@ function LoginForm() {
         <form onSubmit={submit} className="grid gap-4">
           <label className="grid gap-1 text-sm font-medium text-slate-700 dark:text-slate-200">
             Correo
-            <input value={email} onChange={(event) => setEmail(event.target.value)} type="email" className="h-11 rounded-md border border-slate-300 bg-white px-3 text-sm outline-none focus:border-clinic-teal dark:border-slate-700 dark:bg-slate-950" />
+            <input value={email} onChange={(event) => setEmail(event.target.value)} type="email" autoComplete="username" required className="h-11 rounded-md border border-slate-300 bg-white px-3 text-sm outline-none focus:border-clinic-teal dark:border-slate-700 dark:bg-slate-950" />
           </label>
           <label className="grid gap-1 text-sm font-medium text-slate-700 dark:text-slate-200">
             Contraseña
-            <input value={password} onChange={(event) => setPassword(event.target.value)} type="password" className="h-11 rounded-md border border-slate-300 bg-white px-3 text-sm outline-none focus:border-clinic-teal dark:border-slate-700 dark:bg-slate-950" />
+            <input value={password} onChange={(event) => setPassword(event.target.value)} type="password" autoComplete="current-password" required className="h-11 rounded-md border border-slate-300 bg-white px-3 text-sm outline-none focus:border-clinic-teal dark:border-slate-700 dark:bg-slate-950" />
           </label>
           <button disabled={loading} className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-clinic-teal px-4 text-sm font-semibold text-white disabled:opacity-70">
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <LockKeyhole className="h-4 w-4" />}
-            {loading ? 'Entrando...' : 'Entrar'}
+            {loading ? 'Ingresando...' : 'Ingresar'}
           </button>
         </form>
-
-        <div className="mt-5 rounded-md bg-slate-50 p-3 text-sm text-slate-600 dark:bg-slate-950 dark:text-slate-300">
-          <div className="flex items-center gap-2 font-medium text-slate-800 dark:text-slate-100">
-            <Activity className="h-4 w-4 text-clinic-teal" />
-            Usuario demo
-          </div>
-          <p className="mt-1">admin@clinickeyser.com / admin123</p>
-          <p className="mt-1">medico@clinickeyser.com / medico123</p>
-          <p className="mt-1">recepcion@clinickeyser.com / recepcion123</p>
-          <p className="mt-1">farmacia@clinickeyser.com / farmacia123</p>
-          <p className="mt-1">laboratorio@clinickeyser.com / laboratorio123</p>
-          <p className="mt-1">administracion@clinickeyser.com / adminclinica123</p>
-        </div>
     </LoginShell>
   );
 }

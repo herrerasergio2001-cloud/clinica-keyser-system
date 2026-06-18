@@ -13,7 +13,7 @@ export class CreateUserDto {
   phone?: string;
 
   @IsString()
-  @MinLength(8)
+  @MinLength(12)
   password!: string;
 
   @IsEnum(RoleName)
@@ -51,7 +51,7 @@ export class UpdateUserDto {
 
   @IsOptional()
   @IsString()
-  @MinLength(8)
+  @MinLength(12)
   password?: string;
 
   @IsOptional()

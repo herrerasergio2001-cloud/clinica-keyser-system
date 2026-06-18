@@ -1,5 +1,6 @@
 import { PrismaClient, RoleName, Gender, InventoryMovementType, MedicalRecordStatus } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
+import { randomBytes } from 'node:crypto';
 
 const prisma = new PrismaClient();
 
@@ -31,15 +32,7 @@ async function main() {
   );
 
   const roleByName = new Map(roles.map((role) => [role.name, role]));
-  const defaultPasswordHash = await bcrypt.hash('Password123!', 12);
-  const passwordByEmail: Record<string, string> = {
-    'admin@clinickeyser.com': await bcrypt.hash('admin123', 12),
-    'medico@clinickeyser.com': await bcrypt.hash('medico123', 12),
-    'recepcion@clinickeyser.com': await bcrypt.hash('recepcion123', 12),
-    'farmacia@clinickeyser.com': await bcrypt.hash('farmacia123', 12),
-    'laboratorio@clinickeyser.com': await bcrypt.hash('laboratorio123', 12),
-    'administracion@clinickeyser.com': await bcrypt.hash('adminclinica123', 12),
-  };
+  const seedAdminPassword = process.env.SEED_ADMIN_PASSWORD;
   const users = [
     ['superadmin@clinicakeyser.com', 'Super Admin Keyser', RoleName.SUPER_ADMIN],
     ['admin@clinicakeyser.com', 'Admin Clinica Keyser', RoleName.ADMIN],
@@ -60,10 +53,14 @@ async function main() {
 
   const seededUsers = [];
   for (const [email, fullName, roleName] of users) {
+    const initialPassword = email === 'admin@clinickeyser.com' && seedAdminPassword
+      ? seedAdminPassword
+      : randomBytes(32).toString('base64url');
+    const initialPasswordHash = await bcrypt.hash(initialPassword, 12);
     const user = await prisma.user.upsert({
       where: { email },
-      update: { fullName, phone: email === 'admin@clinickeyser.com' ? '8495-2200' : undefined, passwordHash: passwordByEmail[email] ?? defaultPasswordHash, roleId: roleByName.get(roleName)!.id, isActive: true },
-      create: { email, fullName, passwordHash: passwordByEmail[email] ?? defaultPasswordHash, roleId: roleByName.get(roleName)!.id },
+      update: { fullName, phone: email === 'admin@clinickeyser.com' ? '8495-2200' : undefined, roleId: roleByName.get(roleName)!.id },
+      create: { email, fullName, passwordHash: initialPasswordHash, roleId: roleByName.get(roleName)!.id },
     });
     seededUsers.push(user);
   }

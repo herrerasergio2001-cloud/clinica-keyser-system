@@ -90,6 +90,7 @@ export function signOut(router: ReturnType<typeof useRouter>, message = 'Sesión
   if (refreshToken && accessToken) {
     void fetch(`${apiBase}/api/auth/logout`, {
       method: 'POST',
+      credentials: 'include',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
       body: JSON.stringify({ refreshToken }),
     }).catch(() => undefined);

@@ -30,6 +30,7 @@ services:
       API_HOST: 0.0.0.0
       API_PORT: 3001
       CORS_ORIGIN: ${CORS_ORIGIN:-https://clinicakeyser.com}
+      AUTH_COOKIE_DOMAIN: ${AUTH_COOKIE_DOMAIN:-.clinicakeyser.com}
       LOCAL_STORAGE_ROOT: /app/storage
     depends_on:
       postgres:
@@ -62,6 +63,7 @@ services:
       NODE_ENV: production
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://api.clinicakeyser.com}
       NEXT_TELEMETRY_DISABLED: "1"
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?Set JWT_ACCESS_SECRET in Coolify}
     depends_on:
       api:
         condition: service_healthy

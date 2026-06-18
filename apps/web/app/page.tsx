@@ -1,5 +1,5 @@
-import { redirect } from 'next/navigation';
+import { PublicHome } from './_components/public-site';
 
 export default function Page() {
-  redirect('/login');
+  return <PublicHome />;
 }
