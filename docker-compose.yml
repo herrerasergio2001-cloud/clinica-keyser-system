@@ -29,7 +29,7 @@ services:
       JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-7d}
       API_HOST: 0.0.0.0
       API_PORT: 3001
-      CORS_ORIGIN: ${CORS_ORIGIN:?Set CORS_ORIGIN in Coolify}
+      CORS_ORIGIN: ${CORS_ORIGIN:-https://clinicakeyser.com}
       LOCAL_STORAGE_ROOT: /app/storage
     depends_on:
       postgres:
@@ -56,11 +56,11 @@ services:
       context: .
       dockerfile: apps/web/Dockerfile
       args:
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?Set NEXT_PUBLIC_API_URL in Coolify}
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://api.clinicakeyser.com}
     restart: unless-stopped
     environment:
       NODE_ENV: production
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?Set NEXT_PUBLIC_API_URL in Coolify}
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://api.clinicakeyser.com}
       NEXT_TELEMETRY_DISABLED: "1"
     depends_on:
       api:
