@@ -297,7 +297,7 @@ function PublicLayout({ data, children }: { data: PublicData; children: ReactNod
           </nav>
           <div className="hidden items-center gap-2 md:flex">
             <WhatsAppButton settings={data.settings} label="WhatsApp" />
-            <Link href="/login" className="rounded-md border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 hover:border-clinic-teal hover:text-clinic-teal">Acceso personal autorizado</Link>
+            <Link href="/login" className="rounded-md border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 hover:border-clinic-teal hover:text-clinic-teal">Iniciar sesión</Link>
           </div>
           <button onClick={() => setOpen(true)} className="rounded-md border border-slate-200 p-2 md:hidden" aria-label="Abrir menú">
             <Menu className="h-5 w-5" />
@@ -313,7 +313,7 @@ function PublicLayout({ data, children }: { data: PublicData; children: ReactNod
               <div className="grid gap-2">
                 {nav.map(([label, href]) => <Link key={href} href={href} onClick={() => setOpen(false)} className="rounded-md px-3 py-2 text-sm font-medium hover:bg-teal-50">{label}</Link>)}
                 <WhatsAppButton settings={data.settings} label="WhatsApp" />
-                <Link href="/login" className="rounded-md bg-clinic-teal px-3 py-2 text-center text-sm font-semibold text-white">Acceso al sistema</Link>
+                <Link href="/login" className="rounded-md bg-clinic-teal px-3 py-2 text-center text-sm font-semibold text-white">Iniciar sesión</Link>
               </div>
             </div>
           </div>
@@ -338,7 +338,7 @@ function Hero({ data }: { data: PublicData }) {
             <WhatsAppButton settings={data.settings} label="Agendar cita" prominent />
             <Link href="/servicios" className="rounded-md border border-teal-200 bg-white px-5 py-3 text-sm font-semibold text-clinic-teal shadow-sm hover:border-clinic-teal">Ver servicios</Link>
             <WhatsAppButton settings={data.settings} label="WhatsApp" />
-            <Link href="/login" className="rounded-md border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm hover:text-clinic-teal">Acceso al sistema</Link>
+            <Link href="/login" className="rounded-md border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm hover:text-clinic-teal">Iniciar sesión</Link>
           </div>
           <div className="mt-9 grid max-w-3xl gap-3 text-sm text-slate-700 sm:grid-cols-3">
             <InfoPill icon={MapPin} text="Chinandega, Nicaragua" />
@@ -579,7 +579,7 @@ function Footer({ settings }: { settings: Settings }) {
         <div className="flex flex-wrap gap-2">
           <a href={`tel:${settings.primaryPhone}`} className="rounded-md border border-slate-200 px-3 py-2 text-sm font-medium">Llamar</a>
           <WhatsAppButton settings={settings} label="WhatsApp" />
-          <Link href="/login" className="rounded-md bg-clinic-ink px-3 py-2 text-sm font-semibold text-white">Acceso personal autorizado</Link>
+          <Link href="/login" className="rounded-md bg-clinic-ink px-3 py-2 text-sm font-semibold text-white">Iniciar sesión</Link>
         </div>
       </div>
     </footer>
