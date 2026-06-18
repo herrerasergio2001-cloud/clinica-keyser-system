@@ -1,6 +1,5 @@
 import { PrismaClient, RoleName, Gender, InventoryMovementType, MedicalRecordStatus } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
-import { randomBytes } from 'node:crypto';
 
 const prisma = new PrismaClient();
 
@@ -32,97 +31,43 @@ async function main() {
   );
 
   const roleByName = new Map(roles.map((role) => [role.name, role]));
+  const seedAdminEmail = process.env.SEED_ADMIN_EMAIL?.trim().toLowerCase();
   const seedAdminPassword = process.env.SEED_ADMIN_PASSWORD;
-  const users = [
-    ['superadmin@clinicakeyser.com', 'Super Admin Keyser', RoleName.SUPER_ADMIN],
-    ['admin@clinicakeyser.com', 'Admin Clinica Keyser', RoleName.ADMIN],
-    ['administracion@clinickeyser.com', 'Administración Clínica', RoleName.ADMIN],
-    ['admin@clinickeyser.com', 'Dr. Sergio Herrera', RoleName.SUPER_ADMIN],
-    ['medico@clinickeyser.com', 'Dra. Ana Keyser', RoleName.DOCTOR],
-    ['doctor@clinicakeyser.com', 'Dra. Ana Keyser', RoleName.DOCTOR],
-    ['assistant@clinicakeyser.com', 'Asistente Clinica', RoleName.ASSISTANT],
-    ['recepcion@clinickeyser.com', 'Recepción Clínica', RoleName.RECEPTION],
-    ['reception@clinicakeyser.com', 'Recepcion Clinica', RoleName.RECEPTION],
-    ['cashier@clinicakeyser.com', 'Caja Clinica', RoleName.CASHIER],
-    ['farmacia@clinickeyser.com', 'Farmacia Clínica', RoleName.PHARMACY],
-    ['pharmacy@clinicakeyser.com', 'Farmacia Clinica', RoleName.PHARMACY],
-    ['laboratorio@clinickeyser.com', 'Laboratorio Clínica', RoleName.LABORATORY],
-    ['laboratory@clinicakeyser.com', 'Laboratorio Clinica', RoleName.LABORATORY],
-    ['accounting@clinicakeyser.com', 'Contabilidad Clinica', RoleName.ACCOUNTING],
-  ] as const;
-
-  const seededUsers = [];
-  for (const [email, fullName, roleName] of users) {
-    const initialPassword = email === 'admin@clinickeyser.com' && seedAdminPassword
-      ? seedAdminPassword
-      : randomBytes(32).toString('base64url');
-    const initialPasswordHash = await bcrypt.hash(initialPassword, 12);
-    const user = await prisma.user.upsert({
-      where: { email },
-      update: { fullName, phone: email === 'admin@clinickeyser.com' ? '8495-2200' : undefined, roleId: roleByName.get(roleName)!.id },
-      create: { email, fullName, passwordHash: initialPasswordHash, roleId: roleByName.get(roleName)!.id },
-    });
-    seededUsers.push(user);
+  if (!seedAdminEmail || !seedAdminPassword) {
+    throw new Error('Defina SEED_ADMIN_EMAIL y SEED_ADMIN_PASSWORD para crear el administrador inicial.');
   }
 
-  const doctor = seededUsers.find((user) => user.email === 'doctor@clinicakeyser.com')!;
-  const anaDemo = seededUsers.find((user) => user.email === 'medico@clinickeyser.com')!;
-  const superAdmin = seededUsers.find((user) => user.email === 'superadmin@clinicakeyser.com')!;
-  const sergio = seededUsers.find((user) => user.email === 'admin@clinickeyser.com')!;
-
-  await prisma.doctorProfile.upsert({
-    where: { userId: sergio.id },
-    update: {
-      fullName: 'Dr. Sergio Herrera',
-      specialty: 'Médico General, Ecografista Clínico y Médico Estético',
-      minsaCode: '95520',
-      phone: '8495-2200',
-      isActive: true,
-    },
+  const adminName = process.env.SEED_ADMIN_NAME?.trim() || 'Administrador Clínica Keyser';
+  const adminPasswordHash = await bcrypt.hash(seedAdminPassword, 12);
+  const admin = await prisma.user.upsert({
+    where: { email: seedAdminEmail },
+    update: { fullName: adminName, roleId: roleByName.get(RoleName.SUPER_ADMIN)!.id },
     create: {
-      userId: sergio.id,
-      fullName: 'Dr. Sergio Herrera',
-      specialty: 'Médico General, Ecografista Clínico y Médico Estético',
-      minsaCode: '95520',
-      phone: '8495-2200',
-      isActive: true,
+      email: seedAdminEmail,
+      fullName: adminName,
+      passwordHash: adminPasswordHash,
+      roleId: roleByName.get(RoleName.SUPER_ADMIN)!.id,
     },
   });
+  const doctor = admin;
+  const superAdmin = admin;
+  const sergio = admin;
 
   await prisma.doctorProfile.upsert({
-    where: { userId: anaDemo.id },
+    where: { userId: admin.id },
     update: {
-      fullName: 'Dra. Ana Keyser',
-      specialty: 'Medicina general',
-      minsaCode: 'MINSA-DEMO',
-      phone: anaDemo.phone,
+      fullName: adminName,
+      specialty: process.env.SEED_ADMIN_SPECIALTY ?? 'Medicina general',
+      minsaCode: process.env.SEED_ADMIN_MINSA_CODE ?? null,
+      phone: process.env.SEED_ADMIN_PHONE ?? null,
       isActive: true,
     },
     create: {
-      userId: anaDemo.id,
-      fullName: 'Dra. Ana Keyser',
-      specialty: 'Medicina general',
-      minsaCode: 'MINSA-DEMO',
-      phone: anaDemo.phone,
-      isActive: true,
-    },
-  });
-
-  await prisma.doctorProfile.upsert({
-    where: { userId: doctor.id },
-    update: {
-      fullName: doctor.fullName,
-      specialty: 'Medicina general',
-      minsaCode: 'MINSA-DEMO',
-      phone: doctor.phone,
-      isActive: true,
-    },
-    create: {
-      userId: doctor.id,
-      fullName: doctor.fullName,
-      specialty: 'Medicina general',
-      minsaCode: 'MINSA-DEMO',
-      phone: doctor.phone,
+      userId: admin.id,
+      fullName: adminName,
+      specialty: process.env.SEED_ADMIN_SPECIALTY ?? 'Medicina general',
+      minsaCode: process.env.SEED_ADMIN_MINSA_CODE ?? null,
+      phone: process.env.SEED_ADMIN_PHONE ?? null,
       isActive: true,
     },
   });

@@ -228,7 +228,7 @@ export function DoctorsSettingsPage() {
   const [message, setMessage] = useState('');
 
   useEffect(() => {
-    const doctor = doctors.find((item) => item.email === 'admin@clinickeyser.com') ?? doctors[0];
+    const doctor = doctors[0];
     if (doctor) {
       setActive(doctor);
       setForm({ fullName: doctor.doctorProfile?.fullName ?? doctor.fullName, specialty: doctor.doctorProfile?.specialty ?? '', minsaCode: doctor.doctorProfile?.minsaCode ?? '', phone: doctor.doctorProfile?.phone ?? doctor.phone ?? '', signatureUrl: doctor.doctorProfile?.signatureUrl ?? '', stampUrl: doctor.doctorProfile?.stampUrl ?? '', isActive: doctor.doctorProfile?.isActive ?? true });
@@ -331,7 +331,7 @@ export function DocumentFormPage({ kind, initialPatientId }: { kind: 'prescripti
     if (preferredPatient && !patientId) setPatientId(preferredPatient);
     const eligible = doctors.filter((doctor) => doctor.doctorProfile?.isActive !== false && doctor.doctorProfile?.minsaCode && ['SUPER_ADMIN', 'DOCTOR'].includes(doctor.role?.name ?? ''));
     const source = kind === 'prescription' ? eligible : doctors;
-    if (source[0] && !doctorId) setDoctorId(source.find((d) => d.email === 'admin@clinickeyser.com')?.id ?? source[0].id);
+    if (source[0] && !doctorId) setDoctorId(source[0].id);
   }, [patients, doctors, patientId, doctorId, initialPatientId]);
   const selectedPatient = patients.find((p) => p.id === patientId);
   const eligibleDoctors = doctors.filter((doctor) => doctor.doctorProfile?.isActive !== false && doctor.doctorProfile?.minsaCode && ['SUPER_ADMIN', 'DOCTOR'].includes(doctor.role?.name ?? ''));
@@ -398,7 +398,7 @@ function PrintPreview({ settings, patient, doctor, kind, form, pdfPath }: any) {
 export function PatientPrintPage({ patientId }: { patientId: string }) {
   const { patients, doctors, settings, loading } = useProtectedData();
   const patient = patients.find((p) => p.id === patientId);
-  const doctor = doctors.find((d) => d.email === 'admin@clinickeyser.com') ?? doctors[0];
+  const doctor = doctors[0];
   return <AdminShell title="Historia clínica imprimible" subtitle="Vista previa imprimible del expediente">{loading ? <Loading /> : <PrintPreview settings={settings} patient={patient} doctor={doctor} kind="certificate" form={{ title: 'Historia clínica', content: 'Resumen clínico imprimible del paciente. Use Exportar PDF desde el expediente específico para generar el documento clínico completo.' }} />}</AdminShell>;
 }
 
