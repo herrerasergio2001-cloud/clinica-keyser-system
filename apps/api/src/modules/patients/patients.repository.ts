@@ -33,7 +33,9 @@ export class PatientsRepository {
       ? {}
       : query.status === 'archived'
         ? { isDeleted: true }
-        : { isDeleted: false };
+        : query.status === 'inactive'
+          ? { isDeleted: false, status: 'INACTIVE' }
+          : { isDeleted: false, status: { not: 'INACTIVE' } };
     const and: Prisma.PatientWhereInput[] = [];
 
     if (query.search) {

@@ -14,8 +14,9 @@ export class UsersRepository {
     return this.prisma.user.findUnique({ where: { id }, include: { role: true, doctorProfile: true } });
   }
 
-  list() {
+  list(status: 'active' | 'inactive' | 'all' = 'active') {
     return this.prisma.user.findMany({
+      where: status === 'all' ? undefined : { isActive: status === 'active' },
       include: { role: true, doctorProfile: true },
       orderBy: { fullName: 'asc' },
     });

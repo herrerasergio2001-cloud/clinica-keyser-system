@@ -31,14 +31,14 @@ export default function Home() {
   const latestEvolutions = useMemo(() => latestRecords.flatMap((record) => (record.evolutionNotes ?? []).map((note: any) => ({ ...note, patient: record.patient }))).slice(0, 3), [latestRecords]);
 
   const metrics = [
-    ['Pacientes registrados', patients.length || '...', UsersRound],
-    ['Expedientes recientes', latestRecords.length || '...', Activity],
+    ['Pacientes registrados', patients.length, UsersRound],
+    ['Expedientes recientes', latestRecords.length, Activity],
     ['Órdenes pendientes', lab?.urgent ?? '...', ClipboardList],
     ['Resultados listos', lab?.recent?.filter((order: any) => order.status === 'COMPLETED').length ?? '...', TestTube2],
     ['Productos por vencer', pharmacy?.expiring?.length ?? '...', Pill],
     ['Reactivos por vencer', lab?.reagents?.length ?? '...', FlaskConical],
     ['Stock bajo', pharmacy?.lowStock ?? '...', PackageSearch],
-    ['Últimas evoluciones', latestEvolutions.length || '...', Activity],
+    ['Últimas evoluciones', latestEvolutions.length, Activity],
   ];
   const panelActions = [
     canAccess(user?.role, 'patients') && { label: 'Nuevo paciente', icon: UsersRound, onClick: () => router.push('/pacientes?nuevo=1') },
@@ -89,12 +89,13 @@ export default function Home() {
                   <Link href="/expediente" className="inline-flex items-center gap-1 text-sm font-medium text-clinic-teal">Ver expedientes <ArrowRight className="h-4 w-4" /></Link>
                 </div>
                 <div className="divide-y divide-slate-100 dark:divide-slate-800">
-                  {(latestRecords.length ? latestRecords : [{ id: 'demo', patient: { fullName: 'María Fernanda López' }, reasonForVisit: 'Control general', consultationDate: new Date().toISOString() }]).map((record: any) => (
+                  {latestRecords.map((record: any) => (
                     <Link key={record.id} href={record.patient?.id ? `/expediente/${record.patient.id}/${record.id}` : '/expediente'} className="flex items-center justify-between gap-3 py-3 text-sm hover:text-clinic-teal">
                       <span className="min-w-0 truncate">{record.patient?.fullName} · {record.reasonForVisit ?? 'Consulta clínica'}</span>
                       <span className="shrink-0 rounded bg-slate-100 px-2 py-1 text-xs dark:bg-slate-800">Reciente</span>
                     </Link>
                   ))}
+                  {!latestRecords.length && <p className="py-5 text-sm text-slate-500">No hay actividad clínica registrada.</p>}
                 </div>
               </section>
 

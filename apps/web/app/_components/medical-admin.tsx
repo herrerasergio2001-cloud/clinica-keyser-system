@@ -3,13 +3,13 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { FormEvent, ReactNode, useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, Download, FileText, ImageUp, Loader2, Plus, Printer, Save, Settings, Stethoscope, UserRound, UsersRound } from 'lucide-react';
+import { ArrowLeft, Download, FileText, ImageUp, Loader2, Plus, Power, Printer, Save, Settings, Stethoscope, Trash2, UserRound, UsersRound } from 'lucide-react';
 import { AppSidebar, ProtectedModule, UserMenu, canAccess } from './session';
 
 const apiBase = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
 
 type Patient = { id: string; fullName: string; patientCode: string; gender?: string; birthDate?: string; phone?: string };
-type Doctor = { id: string; fullName: string; email: string; phone?: string; role?: { name: string }; doctorProfile?: { fullName?: string; specialty?: string; minsaCode?: string; phone?: string; signatureUrl?: string; stampUrl?: string; photoUrl?: string; isActive?: boolean } | null };
+type Doctor = { id: string; fullName: string; email: string; phone?: string; isActive?: boolean; role?: { name: string }; doctorProfile?: { fullName?: string; specialty?: string; minsaCode?: string; phone?: string; signatureUrl?: string; stampUrl?: string; photoUrl?: string; isActive?: boolean } | null };
 type ClinicSettings = { clinicName: string; logoUrl?: string; printLogoUrl?: string; primaryColor: string; secondaryColor: string; accentColor?: string; address: string; phoneMain: string; phoneAesthetic?: string; whatsapp?: string; email?: string; website?: string; schedule?: string };
 
 function authHeaders(json = false): HeadersInit {
@@ -110,15 +110,16 @@ export function UsersPage({ mode, userId }: { mode?: 'new' | 'edit'; userId?: st
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<'active' | 'inactive' | 'all'>('active');
 
   useEffect(() => {
     if (!localStorage.getItem('accessToken')) return router.replace('/login?next=/usuarios');
-    api<Doctor[]>('/api/users', { headers: authHeaders() }).then((list) => {
+    api<Doctor[]>(`/api/users?status=${userId ? 'all' : statusFilter}`, { headers: authHeaders() }).then((list) => {
       setUsers(list);
       const current = userId ? list.find((item) => item.id === userId) : undefined;
       if (current) setForm({ email: current.email, fullName: current.fullName, phone: current.phone ?? '', password: '', role: current.role?.name ?? 'DOCTOR', isActive: (current as any).isActive ?? true, professionalName: current.doctorProfile?.fullName ?? current.fullName, specialty: current.doctorProfile?.specialty ?? '', minsaCode: current.doctorProfile?.minsaCode ?? '' });
     }).catch((err) => setError(err instanceof Error ? err.message : 'No se pudieron cargar usuarios')).finally(() => setLoading(false));
-  }, [router, userId]);
+  }, [router, userId, statusFilter]);
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -147,7 +148,7 @@ export function UsersPage({ mode, userId }: { mode?: 'new' | 'edit'; userId?: st
   }
 
   async function toggleUser(user: Doctor, enable: boolean) {
-    const confirmed = window.confirm('¿Está seguro que desea eliminar este registro? Esta acción lo ocultará del sistema, pero quedará registrado en auditoría.');
+    const confirmed = window.confirm(enable ? `¿Reactivar a ${user.fullName}?` : `¿Desactivar a ${user.fullName}? No podrá iniciar sesión.`);
     if (!confirmed) return;
     const reason = window.prompt(enable ? `Motivo para reactivar a ${user.fullName}` : `Motivo para desactivar a ${user.fullName}`);
     if (!reason?.trim()) {
@@ -160,6 +161,26 @@ export function UsersPage({ mode, userId }: { mode?: 'new' | 'edit'; userId?: st
       setMessage(enable ? 'Usuario reactivado correctamente.' : 'Usuario desactivado correctamente.');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo actualizar el usuario');
+    }
+  }
+
+  async function deleteUser(user: Doctor) {
+    if (!window.confirm(`¿Eliminar definitivamente a ${user.fullName}? Si tiene historial clínico asociado, el sistema impedirá la eliminación.`)) return;
+    const reason = window.prompt('Motivo de eliminación:');
+    if (!reason?.trim()) {
+      setError('Debe ingresar un motivo.');
+      return;
+    }
+    try {
+      await api(`/api/users/${user.id}`, {
+        method: 'DELETE',
+        headers: authHeaders(true),
+        body: JSON.stringify({ reason }),
+      });
+      setUsers((current) => current.filter((item) => item.id !== user.id));
+      setMessage('Usuario eliminado definitivamente. La acción quedó en auditoría.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo eliminar el usuario');
     }
   }
 
@@ -195,22 +216,34 @@ export function UsersPage({ mode, userId }: { mode?: 'new' | 'edit'; userId?: st
           <section className="rounded-lg border bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="flex items-center gap-2 font-semibold"><UsersRound className="h-4 w-4 text-clinic-teal" />Usuarios registrados</h2>
-              <Link href="/usuarios/nuevo" className="rounded-md bg-clinic-teal px-3 py-2 text-sm font-semibold text-white">Nuevo</Link>
+              <div className="flex gap-2">
+                <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as typeof statusFilter)} className="h-9 rounded-md border bg-white px-2 text-sm dark:bg-slate-950">
+                  <option value="active">Activos</option>
+                  <option value="inactive">Desactivados</option>
+                  <option value="all">Todos</option>
+                </select>
+                <Link href="/usuarios/nuevo" className="rounded-md bg-clinic-teal px-3 py-2 text-sm font-semibold text-white">Nuevo</Link>
+              </div>
             </div>
             <div className="grid gap-2">
               {users.map((user) => (
                 <div key={user.id} className="flex items-center justify-between gap-3 rounded-md border border-slate-200 p-3 text-sm hover:border-clinic-teal dark:border-slate-700">
                   <Link href={`/usuarios/${user.id}`} className="min-w-0 flex-1">
                     <strong>{user.fullName}</strong>
-                    <p className="text-slate-500">{user.email} · {user.role?.name} · {(user as any).isActive ? 'Activo' : 'Inactivo'}</p>
+                    <p className="text-slate-500">{user.email} · {user.role?.name} · {user.isActive ? 'Activo' : 'Inactivo'}</p>
                   </Link>
-                  <button
-                    type="button"
-                    onClick={() => void toggleUser(user, !(user as any).isActive)}
-                    className={`rounded-md border px-3 py-2 text-xs font-semibold ${(user as any).isActive ? 'border-red-200 text-red-700 hover:bg-red-50' : 'border-teal-200 text-clinic-teal hover:bg-teal-50'}`}
-                  >
-                    {(user as any).isActive ? 'Desactivar' : 'Restaurar'}
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => void toggleUser(user, !user.isActive)}
+                      className={`inline-flex items-center gap-1 rounded-md border px-3 py-2 text-xs font-semibold ${user.isActive ? 'border-amber-200 text-amber-700 hover:bg-amber-50' : 'border-teal-200 text-clinic-teal hover:bg-teal-50'}`}
+                    >
+                      <Power className="h-3.5 w-3.5" />{user.isActive ? 'Desactivar' : 'Restaurar'}
+                    </button>
+                    <button type="button" onClick={() => void deleteUser(user)} className="inline-flex items-center gap-1 rounded-md border border-red-200 px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-50">
+                      <Trash2 className="h-3.5 w-3.5" />Eliminar
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -403,6 +436,7 @@ export function PatientPrintPage({ patientId }: { patientId: string }) {
 }
 
 export function PrescriptionDetailPage({ id }: { id: string }) {
+  const router = useRouter();
   const { settings, loading: loadingBase } = useProtectedData();
   const [prescription, setPrescription] = useState<any>(null);
   const [error, setError] = useState('');
@@ -425,10 +459,24 @@ export function PrescriptionDetailPage({ id }: { id: string }) {
     duration: item.duration ?? '',
     instructions: item.instructions ?? '',
   };
+  async function voidPrescription() {
+    if (!window.confirm('¿Anular esta receta? Permanecerá en auditoría y no volverá a mostrarse en el flujo activo.')) return;
+    const reason = window.prompt('Motivo de anulación:');
+    if (!reason?.trim()) return;
+    try {
+      await api(`/api/prescriptions/${id}/void`, { method: 'PATCH', headers: authHeaders(true), body: JSON.stringify({ reason }) });
+      router.replace('/panel');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo anular la receta');
+    }
+  }
   return (
     <AdminShell title="Receta médica" subtitle="Vista previa e impresión de receta guardada">
       {loadingBase || (!prescription && !error) ? <Loading /> : error ? <p>{error}</p> : (
-        <PrintPreview settings={settings} patient={prescription.patient} doctor={prescription.doctor} kind="prescription" form={form} pdfPath={`/api/prescriptions/${id}/pdf`} />
+        <div className="space-y-3">
+          <PrintPreview settings={settings} patient={prescription.patient} doctor={prescription.doctor} kind="prescription" form={form} pdfPath={`/api/prescriptions/${id}/pdf`} />
+          {['SUPER_ADMIN', 'DOCTOR'].includes(currentRole()) && <button onClick={() => void voidPrescription()} className="rounded-md border border-red-200 px-4 py-2 text-sm font-semibold text-red-700">Anular receta con motivo</button>}
+        </div>
       )}
     </AdminShell>
   );

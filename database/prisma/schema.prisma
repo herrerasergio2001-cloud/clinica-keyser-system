@@ -66,6 +66,9 @@ enum AuditAction {
   LAB_RESULT_VOIDED
   USER_DISABLED
   USER_ENABLED
+  USER_DELETED
+  PATIENT_DISABLED
+  PATIENT_ENABLED
   PRODUCT_DISABLED
   PRODUCT_ENABLED
   APPOINTMENT_CANCELLED
@@ -75,6 +78,7 @@ enum AuditAction {
   PACS_STUDY_ASSOCIATED
   ULTRASOUND_REPORT_SIGNED
   DICOM_CONFIG_UPDATED
+  DIGITAL_PRESCRIPTION_VOIDED
 }
 
 enum MedicalRecordStatus {
@@ -118,38 +122,41 @@ model Role {
 }
 
 model User {
-  id                     String               @id @default(cuid())
-  email                  String               @unique
-  passwordHash           String
-  fullName               String
-  phone                  String?
-  isActive               Boolean              @default(true)
-  disabledAt             DateTime?
-  disabledBy             String?
-  disableReason          String?
-  roleId                 String
-  role                   Role                 @relation(fields: [roleId], references: [id])
-  sessions               Session[]
-  auditLogs              AuditLog[]
-  authoredMedicalRecords MedicalRecord[]      @relation("MedicalRecordDoctor")
-  createdMedicalRecords  MedicalRecord[]      @relation("MedicalRecordCreatedBy")
-  updatedMedicalRecords  MedicalRecord[]      @relation("MedicalRecordUpdatedBy")
-  evolutionNotes         EvolutionNote[]
-  medicalAttachments     MedicalAttachment[]
-  assignedPatients       Patient[]            @relation("AssignedDoctorPatients")
-  doctorProfile          DoctorProfile?
-  prescriptionsIssued    Prescription[]       @relation("PrescriptionDoctor")
-  externalLabOrders      LabOrderExternal[]   @relation("LabOrderExternalDoctor")
-  imagingOrdersRequested ImagingOrder[]       @relation("ImagingOrderDoctor")
-  ultrasoundReports      UltrasoundReport[]   @relation("UltrasoundReportDoctor")
-  medicalCertificates    MedicalCertificate[] @relation("MedicalCertificateDoctor")
-  consentDocuments       ConsentDocument[]    @relation("ConsentDocumentDoctor")
-  printableDocuments     PrintableDocument[]  @relation("PrintableDocumentDoctor")
-  createdPrintables      PrintableDocument[]  @relation("PrintableDocumentCreatedBy")
-  clinicalEvents         ClinicalEvent[]      @relation("ClinicalEventDoctor")
-  createdClinicalEvents  ClinicalEvent[]      @relation("ClinicalEventCreatedBy")
-  createdAt              DateTime             @default(now())
-  updatedAt              DateTime             @updatedAt
+  id                          String                       @id @default(cuid())
+  email                       String                       @unique
+  passwordHash                String
+  fullName                    String
+  phone                       String?
+  isActive                    Boolean                      @default(true)
+  disabledAt                  DateTime?
+  disabledBy                  String?
+  disableReason               String?
+  roleId                      String
+  role                        Role                         @relation(fields: [roleId], references: [id])
+  sessions                    Session[]
+  auditLogs                   AuditLog[]
+  authoredMedicalRecords      MedicalRecord[]              @relation("MedicalRecordDoctor")
+  createdMedicalRecords       MedicalRecord[]              @relation("MedicalRecordCreatedBy")
+  updatedMedicalRecords       MedicalRecord[]              @relation("MedicalRecordUpdatedBy")
+  evolutionNotes              EvolutionNote[]
+  medicalAttachments          MedicalAttachment[]
+  assignedPatients            Patient[]                    @relation("AssignedDoctorPatients")
+  doctorProfile               DoctorProfile?
+  prescriptionsIssued         Prescription[]               @relation("PrescriptionDoctor")
+  externalLabOrders           LabOrderExternal[]           @relation("LabOrderExternalDoctor")
+  imagingOrdersRequested      ImagingOrder[]               @relation("ImagingOrderDoctor")
+  ultrasoundReports           UltrasoundReport[]           @relation("UltrasoundReportDoctor")
+  medicalCertificates         MedicalCertificate[]         @relation("MedicalCertificateDoctor")
+  consentDocuments            ConsentDocument[]            @relation("ConsentDocumentDoctor")
+  printableDocuments          PrintableDocument[]          @relation("PrintableDocumentDoctor")
+  createdPrintables           PrintableDocument[]          @relation("PrintableDocumentCreatedBy")
+  clinicalEvents              ClinicalEvent[]              @relation("ClinicalEventDoctor")
+  createdClinicalEvents       ClinicalEvent[]              @relation("ClinicalEventCreatedBy")
+  digitalPrescriptions        DigitalPrescription[]        @relation("DigitalPrescriptionDoctor")
+  createdDigitalPrescriptions DigitalPrescription[]        @relation("DigitalPrescriptionCreatedBy")
+  digitalPrescriptionVersions DigitalPrescriptionVersion[] @relation("DigitalPrescriptionVersionEditor")
+  createdAt                   DateTime                     @default(now())
+  updatedAt                   DateTime                     @updatedAt
 
   @@index([isActive])
 }
@@ -1419,6 +1426,52 @@ model ConsentDocument {
   @@index([isDeleted])
 }
 
+model DigitalPrescription {
+  id          String                       @id @default(cuid())
+  code        String                       @unique
+  patientName String
+  patientAge  String?
+  diagnosis   String?
+  indications String?
+  medications Json
+  studies     Json
+  doctorId    String
+  doctor      User                         @relation("DigitalPrescriptionDoctor", fields: [doctorId], references: [id])
+  doctorName  String
+  doctorCode  String
+  status      String                       @default("ACTIVE")
+  version     Int                          @default(1)
+  voidedAt    DateTime?
+  voidedBy    String?
+  voidReason  String?
+  createdById String
+  createdBy   User                         @relation("DigitalPrescriptionCreatedBy", fields: [createdById], references: [id])
+  versions    DigitalPrescriptionVersion[]
+  createdAt   DateTime                     @default(now())
+  updatedAt   DateTime                     @updatedAt
+
+  @@index([patientName])
+  @@index([doctorId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model DigitalPrescriptionVersion {
+  id                    String              @id @default(cuid())
+  digitalPrescriptionId String
+  digitalPrescription   DigitalPrescription @relation(fields: [digitalPrescriptionId], references: [id], onDelete: Cascade)
+  version               Int
+  snapshot              Json
+  changeReason          String
+  editedById            String
+  editedBy              User                @relation("DigitalPrescriptionVersionEditor", fields: [editedById], references: [id])
+  createdAt             DateTime            @default(now())
+
+  @@unique([digitalPrescriptionId, version])
+  @@index([editedById])
+  @@index([createdAt])
+}
+
 model PublicSiteSettings {
   id                    String   @id @default(cuid())
   clinicName            String   @default("Clínica Keyser")
@@ -1599,16 +1652,18 @@ model Expense {
 }
 
 model AuditLog {
-  id        String      @id @default(cuid())
-  actorId   String?
-  actor     User?       @relation(fields: [actorId], references: [id])
-  action    AuditAction
-  entity    String
-  entityId  String?
-  ipAddress String?
-  before    Json?
-  after     Json?
-  createdAt DateTime    @default(now())
+  id         String      @id @default(cuid())
+  actorId    String?
+  actor      User?       @relation(fields: [actorId], references: [id])
+  actorName  String?
+  actorEmail String?
+  action     AuditAction
+  entity     String
+  entityId   String?
+  ipAddress  String?
+  before     Json?
+  after      Json?
+  createdAt  DateTime    @default(now())
 }
 
 model Counter {

@@ -8,7 +8,7 @@ const permissionsByRole: Record<RoleName, string[]> = {
   ADMIN: ['reports:*', 'patients:read', 'appointments:read'],
   DOCTOR: ['patients:read', 'patients:update', 'medical-records:*', 'appointments:*', 'reports:read', 'documents:*', 'prescriptions:*'],
   ASSISTANT: ['patients:read', 'medical-records:read', 'attachments:read', 'appointments:*'],
-  RECEPTION: ['patients:*', 'medical-records:read', 'attachments:read', 'appointments:*', 'documents:read'],
+  RECEPTION: ['patients:*', 'medical-records:read', 'attachments:read', 'appointments:*', 'documents:read', 'orders:create'],
   CASHIER: ['pos:*', 'billing:*', 'patients:read'],
   PHARMACY: ['pharmacy:*', 'inventory:*', 'pos:*'],
   LABORATORY: ['laboratory:*', 'patients:read'],
@@ -16,6 +16,7 @@ const permissionsByRole: Record<RoleName, string[]> = {
 };
 
 async function main() {
+  const seedDemoData = process.env.SEED_DEMO_DATA === 'true';
   const roles = await Promise.all(
     Object.values(RoleName).map((name) =>
       prisma.role.upsert({
@@ -125,6 +126,7 @@ async function main() {
   const generalMedicine = categories.find((category) => category.name === 'Medicina general')!;
   const ultrasound = categories.find((category) => category.name === 'Ultrasonido')!;
 
+  if (seedDemoData) {
   const maria = await prisma.patient.upsert({
     where: { patientCode: 'CK-000001' },
     update: {
@@ -723,6 +725,7 @@ async function main() {
       },
     },
   });
+  }
 
   await prisma.publicSiteSettings.upsert({
     where: { id: 'clinic-keyser-public-settings' },
@@ -832,6 +835,7 @@ async function main() {
     },
   });
 
+  if (seedDemoData) {
   const publicPromotions = [
     ['dia-de-la-madre', 'Promociones del Día de la Madre', 'Campañas especiales para cuidar la salud de mamá.', 'Promoción demo administrable desde el panel privado.', 'Campañas', '2026-05-01', '2026-05-31'],
     ['paquetes-pediatricos', 'Paquetes pediátricos', 'Controles y orientación para niñas y niños.', 'Paquete demo con valoración clínica y seguimiento.', 'Pediatría', '2026-05-01', '2026-08-31'],
@@ -862,6 +866,7 @@ async function main() {
       update: { title, description, category, isActive: true, publishedAt: new Date(Date.UTC(2026, 4, 1 + index)) },
       create: { slug, title, description, category, content: description, isActive: true, publishedAt: new Date(Date.UTC(2026, 4, 1 + index)) },
     });
+  }
   }
 
   const publicFaqs = [
@@ -899,6 +904,9 @@ async function main() {
     });
   }
 
+  if (seedDemoData) {
+  const maria = await prisma.patient.findUniqueOrThrow({ where: { patientCode: 'CK-000001' } });
+  const record = await prisma.medicalRecord.findUniqueOrThrow({ where: { recordNumber: 'EXP-000001' } });
   const printable = await prisma.printableDocument.upsert({
     where: { id: 'seed-printable-prescription-maria' },
     update: { doctorId: sergio.id, patientId: maria.id, medicalRecordId: record.id },
@@ -961,6 +969,7 @@ async function main() {
       sortOrder: 1,
     },
   });
+  }
 
   await prisma.dicomConfiguration.upsert({
     where: { id: 'dicom-default' },

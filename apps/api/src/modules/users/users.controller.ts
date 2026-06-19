@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Ip, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Ip, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { CurrentUser } from '../../shared/decorators/current-user.decorator';
 import { Permissions } from '../../shared/decorators/permissions.decorator';
 import { Roles } from '../../shared/decorators/roles.decorator';
@@ -17,8 +17,8 @@ export class UsersController {
   @Get()
   @Roles('SUPER_ADMIN')
   @Permissions('users:read')
-  list() {
-    return this.users.list();
+  list(@Query('status') status?: 'active' | 'inactive' | 'all') {
+    return this.users.list(status ?? 'active');
   }
 
   @Post()
@@ -38,8 +38,8 @@ export class UsersController {
   @Delete(':id')
   @Roles('SUPER_ADMIN')
   @Permissions('*', 'users:delete')
-  delete(@Param('id') id: string, @CurrentUser() user: CurrentUser, @Ip() ipAddress: string) {
-    return this.users.deactivate(id, { reason: 'Desactivado desde acción de eliminación segura' }, user, ipAddress);
+  delete(@Param('id') id: string, @Body() dto: SafeDeleteDto, @CurrentUser() user: CurrentUser, @Ip() ipAddress: string) {
+    return this.users.hardDelete(id, dto, user, ipAddress);
   }
 
   @Patch(':id/disable')

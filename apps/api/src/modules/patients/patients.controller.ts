@@ -69,12 +69,14 @@ export class PatientsController {
   }
 
   @Delete(':id')
+  @Roles('SUPER_ADMIN')
   @Permissions('patients:delete', 'patients:*')
   delete(@Param('id') id: string, @CurrentUser() user: CurrentUser, @Ip() ipAddress: string) {
     return this.patients.archive(id, { reason: 'Archivado desde acción de eliminación segura' }, user, ipAddress);
   }
 
   @Patch(':id/archive')
+  @Roles('SUPER_ADMIN')
   @Permissions('patients:delete', 'patients:*')
   archive(@Param('id') id: string, @Body() dto: SafeDeleteDto, @CurrentUser() user: CurrentUser, @Ip() ipAddress: string) {
     return this.patients.archive(id, dto, user, ipAddress);
@@ -85,6 +87,20 @@ export class PatientsController {
   @Permissions('*', 'patients:update')
   restore(@Param('id') id: string, @Body() dto: SafeDeleteDto, @CurrentUser() user: CurrentUser, @Ip() ipAddress: string) {
     return this.patients.restore(id, dto, user, ipAddress);
+  }
+
+  @Patch(':id/deactivate')
+  @Roles('SUPER_ADMIN')
+  @Permissions('*', 'patients:delete')
+  deactivate(@Param('id') id: string, @Body() dto: SafeDeleteDto, @CurrentUser() user: CurrentUser, @Ip() ipAddress: string) {
+    return this.patients.deactivate(id, dto, user, ipAddress);
+  }
+
+  @Patch(':id/activate')
+  @Roles('SUPER_ADMIN')
+  @Permissions('*', 'patients:update')
+  activate(@Param('id') id: string, @Body() dto: SafeDeleteDto, @CurrentUser() user: CurrentUser, @Ip() ipAddress: string) {
+    return this.patients.activate(id, dto, user, ipAddress);
   }
 
   @Patch('appointments/:appointmentId/cancel')

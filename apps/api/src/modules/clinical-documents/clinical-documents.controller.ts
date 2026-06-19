@@ -157,7 +157,8 @@ export class ClinicalDocumentsController {
   }
 
   @Post('lab-orders-external')
-  @Permissions('*', 'documents:*', 'medical-records:*')
+  @Roles('SUPER_ADMIN', 'DOCTOR', 'RECEPTION')
+  @Permissions('*', 'documents:*', 'medical-records:*', 'orders:create')
   createLabOrder(@Body() dto: CreateLabOrderExternalDto, @CurrentUser() user: CurrentUser, @Ip() ipAddress: string) {
     return this.documents.createLabOrderExternal(dto, user, ipAddress);
   }
@@ -183,7 +184,8 @@ export class ClinicalDocumentsController {
   }
 
   @Post('imaging-orders')
-  @Permissions('*', 'documents:*', 'medical-records:*')
+  @Roles('SUPER_ADMIN', 'DOCTOR', 'RECEPTION')
+  @Permissions('*', 'documents:*', 'medical-records:*', 'orders:create')
   createImagingOrder(@Body() dto: CreateImagingOrderDto, @CurrentUser() user: CurrentUser, @Ip() ipAddress: string) {
     return this.documents.createImagingOrder(dto, user, ipAddress);
   }

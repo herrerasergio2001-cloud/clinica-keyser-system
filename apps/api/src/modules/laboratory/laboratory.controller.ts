@@ -22,13 +22,13 @@ export class LaboratoryController {
 
   @Get('orders')
   @Permissions('laboratory:*', 'medical-records:read', 'appointments:*', '*')
-  orders() {
-    return this.laboratory.orders();
+  orders(@Query('status') status?: 'active' | 'cancelled' | 'all') {
+    return this.laboratory.orders(status ?? 'active');
   }
 
   @Post('orders')
-  @Roles('SUPER_ADMIN', 'DOCTOR', 'LABORATORY')
-  @Permissions('laboratory:*', 'medical-records:*', 'appointments:*', '*')
+  @Roles('SUPER_ADMIN', 'DOCTOR', 'LABORATORY', 'RECEPTION')
+  @Permissions('laboratory:*', 'medical-records:*', 'appointments:*', 'orders:create', '*')
   createOrder(@Body() body: Prisma.LabOrderUncheckedCreateInput, @CurrentUser() user: CurrentUser) {
     return this.laboratory.createOrder(body, user);
   }
@@ -38,6 +38,13 @@ export class LaboratoryController {
   @Permissions('laboratory:*', '*')
   updateOrder(@Param('id') id: string, @Body() body: Prisma.LabOrderUncheckedUpdateInput) {
     return this.laboratory.updateOrder(id, body);
+  }
+
+  @Patch('orders/:id/cancel')
+  @Roles('SUPER_ADMIN')
+  @Permissions('*')
+  cancelOrder(@Param('id') id: string, @Body() dto: SafeDeleteDto, @CurrentUser() user: CurrentUser) {
+    return this.laboratory.cancelOrder(id, dto, user);
   }
 
   @Get('templates')

@@ -21,6 +21,7 @@ pnpm-debug.log*
 .env
 .env.*
 !.env.example
+/TEMP_CREDENTIALS.md
 
 # Local runtime data
 /storage/

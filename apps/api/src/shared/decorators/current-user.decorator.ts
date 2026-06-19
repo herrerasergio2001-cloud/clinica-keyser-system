@@ -5,6 +5,8 @@ export type CurrentUser = {
   email: string;
   role: string;
   permissions: string[];
+  name?: string;
+  minsaCode?: string;
 };
 
 export const CurrentUser = createParamDecorator((_: unknown, ctx: ExecutionContext): CurrentUser => {

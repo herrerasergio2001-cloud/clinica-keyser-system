@@ -3,9 +3,9 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { FormEvent, useEffect, useState } from 'react';
-import { ArrowLeft, Beaker, ClipboardList, Download, FilePlus2, FlaskConical, Home, Printer, Save, TestTube2 } from 'lucide-react';
+import { ArrowLeft, Beaker, ClipboardList, Download, FilePlus2, FlaskConical, Home, Printer, Save, TestTube2, XCircle } from 'lucide-react';
 import { MasterActionMenu } from '../../_components/master-action-menu';
-import { AppSidebar, ProtectedModule, UserMenu } from '../../_components/session';
+import { AppSidebar, ProtectedModule, UserMenu, decodeSession } from '../../_components/session';
 
 const apiBase = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
 
@@ -51,7 +51,10 @@ function useAuthRedirect() {
 
 function Shell({ title, children }: { title: string; children: React.ReactNode }) {
   const router = useRouter();
-  const labActions = [
+  const role = decodeSession()?.role;
+  const labActions = role === 'RECEPTION' ? [
+    { label: 'Nueva orden', icon: ClipboardList, onClick: () => router.push('/laboratorio/ordenes/nueva') },
+  ] : [
     { label: 'Nueva orden', icon: ClipboardList, onClick: () => router.push('/laboratorio/ordenes/nueva') },
     { label: 'Nuevo resultado', icon: FilePlus2, onClick: () => router.push('/laboratorio/ordenes') },
     { label: 'Nuevo reactivo', icon: Beaker, onClick: () => router.push('/laboratorio/reactivos') },
@@ -79,14 +82,16 @@ function Shell({ title, children }: { title: string; children: React.ReactNode }
           </div>
           <nav className="flex flex-wrap gap-2 text-sm">
             <UserMenu />
-            {[
+            {(role === 'RECEPTION' ? [
+              ['/laboratorio/ordenes/nueva', 'Nueva orden'],
+            ] : [
               ['/laboratorio', 'Panel'],
               ['/laboratorio/ordenes', 'Órdenes'],
               ['/laboratorio/ordenes/nueva', 'Nueva orden'],
               ['/laboratorio/plantillas', 'Plantillas'],
               ['/laboratorio/reactivos', 'Reactivos'],
               ['/laboratorio/vencimientos', 'Vencimientos'],
-            ].map(([href, label]) => <Link key={href} href={href} className="rounded-md border border-slate-200 px-3 py-2 hover:border-clinic-teal hover:text-clinic-teal dark:border-slate-700">{label}</Link>)}
+            ]).map(([href, label]) => <Link key={href} href={href} className="rounded-md border border-slate-200 px-3 py-2 hover:border-clinic-teal hover:text-clinic-teal dark:border-slate-700">{label}</Link>)}
             <button type="button" onClick={() => window.history.back()} className="inline-flex items-center gap-2 rounded-md border border-slate-200 px-3 py-2 hover:border-clinic-teal hover:text-clinic-teal dark:border-slate-700"><ArrowLeft className="h-4 w-4" />Regresar</button>
           </nav>
         </div>
@@ -114,12 +119,22 @@ function Metric({ icon: Icon, label, value }: { icon: React.ComponentType<{ clas
 export function OrdersPage() {
   useAuthRedirect();
   const [orders, setOrders] = useState<Order[]>([]);
-  useEffect(() => void api<Order[]>('/api/laboratory/orders', { headers: headers(false) }).then(setOrders).catch(() => undefined), []);
-  return <Shell title="Órdenes"><OrderList orders={orders} /></Shell>;
+  const [status, setStatus] = useState<'active' | 'cancelled' | 'all'>('active');
+  const isAdmin = decodeSession()?.role === 'SUPER_ADMIN';
+  const load = () => api<Order[]>(`/api/laboratory/orders?status=${status}`, { headers: headers(false) }).then(setOrders).catch(() => undefined);
+  useEffect(() => void load(), [status]);
+  async function cancel(order: Order) {
+    if (!window.confirm(`¿Anular la orden de ${order.patient.fullName}?`)) return;
+    const reason = window.prompt('Motivo de anulación:');
+    if (!reason?.trim()) return;
+    await api(`/api/laboratory/orders/${order.id}/cancel`, { method: 'PATCH', headers: headers(), body: JSON.stringify({ reason }) });
+    await load();
+  }
+  return <Shell title="Órdenes"><div className="flex justify-end"><select value={status} onChange={(event) => setStatus(event.target.value as typeof status)} className="h-10 rounded-md border bg-white px-3 text-sm dark:bg-slate-950"><option value="active">Activas</option><option value="cancelled">Anuladas</option><option value="all">Todas</option></select></div><OrderList orders={orders} onCancel={isAdmin ? cancel : undefined} /></Shell>;
 }
 
-function OrderList({ orders }: { orders: Order[] }) {
-  return <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">{orders.map((order) => <article key={order.id} className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900"><div className="flex flex-wrap justify-between gap-2"><div><strong>{order.orderType}</strong><p className="text-sm text-slate-500">{order.patient?.fullName} · {order.patient?.patientCode}</p></div><span className="rounded-full bg-teal-50 px-3 py-1 text-sm text-teal-800">{statusLabel(order.status)}</span></div><div className="mt-3 grid grid-cols-2 gap-2 text-sm"><span>Fecha: {new Date(order.createdAt).toLocaleDateString('es-NI')}</span><span>Prioridad: {priorityLabel(order.priority)}</span></div><div className="mt-4 flex gap-2"><Link href={`/laboratorio/resultados/${order.id}`} className="rounded-md border border-slate-200 px-3 py-2 text-sm dark:border-slate-700">Abrir</Link><Link href={`/laboratorio/resultados/${order.id}`} className="rounded-md bg-clinic-teal px-3 py-2 text-sm font-medium text-white">Resultado</Link></div></article>)}</div>;
+function OrderList({ orders, onCancel }: { orders: Order[]; onCancel?: (order: Order) => void }) {
+  return <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">{orders.map((order) => <article key={order.id} className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900"><div className="flex flex-wrap justify-between gap-2"><div><strong>{order.orderType}</strong><p className="text-sm text-slate-500">{order.patient?.fullName} · {order.patient?.patientCode}</p></div><span className="rounded-full bg-teal-50 px-3 py-1 text-sm text-teal-800">{statusLabel(order.status)}</span></div><div className="mt-3 grid grid-cols-2 gap-2 text-sm"><span>Fecha: {new Date(order.createdAt).toLocaleDateString('es-NI')}</span><span>Prioridad: {priorityLabel(order.priority)}</span></div><div className="mt-4 flex flex-wrap gap-2"><Link href={`/laboratorio/resultados/${order.id}`} className="rounded-md border border-slate-200 px-3 py-2 text-sm dark:border-slate-700">Abrir</Link>{order.status !== 'CANCELLED' && <Link href={`/laboratorio/resultados/${order.id}`} className="rounded-md bg-clinic-teal px-3 py-2 text-sm font-medium text-white">Resultado</Link>}{onCancel && order.status !== 'CANCELLED' && <button onClick={() => void onCancel(order)} className="inline-flex items-center gap-1 rounded-md border border-red-200 px-3 py-2 text-sm text-red-700"><XCircle className="h-4 w-4" />Anular</button>}</div></article>)}</div>;
 }
 
 export function NewOrderPage() {
@@ -213,7 +228,7 @@ export function ReagentsPage({ expiring = false }: { expiring?: boolean }) {
 }
 
 function statusLabel(status: string) {
-  return ({ REQUESTED: 'Solicitada', SAMPLE_TAKEN: 'Muestra tomada', PROCESSING: 'Procesando', COMPLETED: 'Completada', DELIVERED: 'Entregada' } as Record<string, string>)[status] ?? status;
+  return ({ REQUESTED: 'Solicitada', SAMPLE_TAKEN: 'Muestra tomada', PROCESSING: 'Procesando', COMPLETED: 'Completada', DELIVERED: 'Entregada', CANCELLED: 'Anulada' } as Record<string, string>)[status] ?? status;
 }
 
 function priorityLabel(priority: string) {

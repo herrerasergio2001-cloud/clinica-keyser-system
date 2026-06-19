@@ -11,6 +11,7 @@ import { PharmacyModule } from './modules/pharmacy/pharmacy.module';
 import { LaboratoryModule } from './modules/laboratory/laboratory.module';
 import { PublicSiteModule } from './modules/public-site/public-site.module';
 import { ClinicalDocumentsModule } from './modules/clinical-documents/clinical-documents.module';
+import { DigitalPrescriptionsModule } from './modules/digital-prescriptions/digital-prescriptions.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { ClinicalDocumentsModule } from './modules/clinical-documents/clinical-d
     LaboratoryModule,
     PublicSiteModule,
     ClinicalDocumentsModule,
+    DigitalPrescriptionsModule,
   ],
 })
 export class AppModule {}

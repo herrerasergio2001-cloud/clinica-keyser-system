@@ -156,6 +156,48 @@ export class PatientsService {
     return patient;
   }
 
+  async deactivate(id: string, dto: SafeDeleteDto, actor?: CurrentUser, ipAddress?: string) {
+    const before = await this.findById(id);
+    if (before.isDeleted) throw new BadRequestException('El paciente ya está archivado');
+    const patient = await this.patients.update(id, {
+      status: 'INACTIVE',
+      clinicalStatus: 'INACTIVE',
+      deletedBy: actor?.sub,
+      deletionReason: dto.reason,
+    });
+    await this.audit.record({
+      actorId: actor?.sub,
+      action: AuditAction.PATIENT_DISABLED,
+      entity: 'Patient',
+      entityId: id,
+      ipAddress,
+      before,
+      after: { patient, reason: dto.reason },
+    });
+    return patient;
+  }
+
+  async activate(id: string, dto: SafeDeleteDto, actor?: CurrentUser, ipAddress?: string) {
+    const before = await this.findById(id);
+    if (before.isDeleted) throw new BadRequestException('Restaure primero el paciente archivado');
+    const patient = await this.patients.update(id, {
+      status: 'ACTIVE',
+      clinicalStatus: 'ACTIVE',
+      deletedBy: null,
+      deletionReason: null,
+    });
+    await this.audit.record({
+      actorId: actor?.sub,
+      action: AuditAction.PATIENT_ENABLED,
+      entity: 'Patient',
+      entityId: id,
+      ipAddress,
+      before,
+      after: { patient, reason: dto.reason },
+    });
+    return patient;
+  }
+
   async restore(id: string, dto: SafeDeleteDto, actor?: CurrentUser, ipAddress?: string) {
     const before = await this.findById(id);
     const patient = await this.patients.restore(id, {

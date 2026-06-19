@@ -26,8 +26,12 @@ export class LaboratoryService {
     };
   }
 
-  orders() {
-    return this.prisma.labOrder.findMany({ where: { status: { not: 'CANCELLED' } }, include: { patient: true, labResults: { where: { isDeleted: false }, include: { template: true } } }, orderBy: { createdAt: 'desc' } });
+  orders(status: 'active' | 'cancelled' | 'all' = 'active') {
+    return this.prisma.labOrder.findMany({
+      where: status === 'all' ? undefined : status === 'cancelled' ? { status: 'CANCELLED' } : { status: { not: 'CANCELLED' } },
+      include: { patient: true, labResults: { where: { isDeleted: false }, include: { template: true } } },
+      orderBy: { createdAt: 'desc' },
+    });
   }
 
   async createOrder(data: Prisma.LabOrderUncheckedCreateInput, actor: CurrentUser) {
@@ -38,6 +42,35 @@ export class LaboratoryService {
 
   updateOrder(id: string, data: Prisma.LabOrderUncheckedUpdateInput) {
     return this.prisma.labOrder.update({ where: { id }, data, include: { patient: true } });
+  }
+
+  async cancelOrder(id: string, dto: SafeDeleteDto, actor: CurrentUser) {
+    const before = await this.prisma.labOrder.findUnique({ where: { id }, include: { patient: true, labResults: true } });
+    if (!before) throw new NotFoundException('Orden no encontrada');
+    if (before.status === 'CANCELLED') throw new BadRequestException('La orden ya está anulada');
+    if (before.labResults.some((result) => !result.isDeleted && result.status !== 'VOIDED')) {
+      throw new BadRequestException('Anule primero los resultados activos asociados a esta orden');
+    }
+    const order = await this.prisma.labOrder.update({
+      where: { id },
+      data: {
+        status: 'CANCELLED',
+        cancelledAt: new Date(),
+        cancelledBy: actor.sub,
+        cancelReason: dto.reason,
+        updatedById: actor.sub,
+      },
+      include: { patient: true },
+    });
+    await this.audit.record({
+      actorId: actor.sub,
+      action: AuditAction.DELETE,
+      entity: 'LabOrder',
+      entityId: id,
+      before,
+      after: { order, reason: dto.reason },
+    });
+    return order;
   }
 
   templates() {

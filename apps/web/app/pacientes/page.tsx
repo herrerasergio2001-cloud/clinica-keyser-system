@@ -34,7 +34,7 @@ import {
   UsersRound,
   X,
 } from 'lucide-react';
-import { AppSidebar, ProtectedModule, UserMenu, signOut } from '../_components/session';
+import { AppSidebar, ProtectedModule, UserMenu, decodeSession, signOut } from '../_components/session';
 
 const apiBase = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
 
@@ -99,6 +99,8 @@ type Patient = {
   currentMedications?: string | null;
   photoUrl?: string | null;
   clinicalStatus?: string | null;
+  status?: string | null;
+  isDeleted?: boolean;
   category?: PatientCategory | null;
   assignedDoctor?: { id: string; fullName: string } | null;
   clinicalAlerts?: Array<{ id: string; title: string; severity: string; type: string }>;
@@ -138,73 +140,6 @@ const categoryStyles: Record<string, { color: string; icon: React.ComponentType<
   Cardiologia: { color: '#dc2626', icon: HeartPulse },
   Laboratorio: { color: '#4f46e5', icon: FlaskConical },
 };
-
-const demoCategories: PatientCategory[] = [
-  { id: 'general', name: 'Medicina general', color: '#0f766e', icon: 'stethoscope' },
-  { id: 'pediatria', name: 'Pediatria', color: '#2563eb', icon: 'baby' },
-  { id: 'ginecologia', name: 'Ginecologia', color: '#db2777', icon: 'venus' },
-  { id: 'cardiologia', name: 'Cardiologia', color: '#dc2626', icon: 'heart-pulse' },
-];
-
-const demoPatients: Patient[] = [
-  {
-    id: 'demo-maria',
-    patientCode: 'CK-000001',
-    fullName: 'Maria Fernanda Lopez',
-    idNumber: '001-010190-0001A',
-    birthDate: '1990-01-01T00:00:00.000Z',
-    gender: 'FEMALE',
-    phone: '+505 8888 1111',
-    address: 'Managua, Nicaragua',
-    city: 'Managua',
-    occupation: 'Comerciante',
-    emergencyContact: 'Carlos Lopez +505 8888 2222',
-    allergies: 'Penicilina',
-    bloodType: 'O+',
-    chronicDiseases: 'Hipertension',
-    currentMedications: 'Losartan 50 mg diario',
-    clinicalStatus: 'Seguimiento',
-    category: demoCategories[0],
-    assignedDoctor: { id: 'doctor-demo', fullName: 'Dra. Ana Keyser' },
-    clinicalAlerts: [
-      { id: 'a1', title: 'Alergia importante: penicilina', severity: 'HIGH', type: 'ALLERGY' },
-      { id: 'a2', title: 'Hipertension', severity: 'MEDIUM', type: 'CHRONIC' },
-    ],
-    appointments: [{ id: 'c1', startsAt: '2026-06-18T09:00:00.000Z', status: 'CONFIRMED', reason: 'Control medico' }],
-    medicalRecords: [
-      {
-        id: 'r1',
-        consultationDate: '2026-05-18T09:00:00.000Z',
-        diagnosisText: 'Hipertension arterial en seguimiento',
-        nextAppointmentDate: '2026-06-18T09:00:00.000Z',
-        doctor: { fullName: 'Dra. Ana Keyser' },
-        vitalSigns: { bloodPressure: '145/90', heartRate: 82, temperature: 36.7, oxygenSaturation: 98, bmi: 27.62 },
-        evolutionNotes: [{ noteDate: '2026-05-18T09:30:00.000Z', assessment: 'Hipertension en ajuste terapeutico.', plan: 'Control en 4 semanas.' }],
-      },
-    ],
-    patientAttachments: [],
-  },
-  {
-    id: 'demo-jose',
-    patientCode: 'CK-000002',
-    fullName: 'Jose Ricardo Martinez',
-    idNumber: '001-050585-0002B',
-    birthDate: '1985-05-05T00:00:00.000Z',
-    gender: 'MALE',
-    phone: '+505 8777 3333',
-    address: 'Masaya, Nicaragua',
-    city: 'Masaya',
-    emergencyContact: 'Lucia Martinez +505 8777 4444',
-    bloodType: 'A+',
-    clinicalStatus: 'Activo',
-    category: demoCategories[3],
-    assignedDoctor: { id: 'doctor-demo', fullName: 'Dra. Ana Keyser' },
-    clinicalAlerts: [{ id: 'a3', title: 'Seguimiento pendiente', severity: 'INFO', type: 'FOLLOW_UP' }],
-    appointments: [],
-    medicalRecords: [],
-    patientAttachments: [],
-  },
-];
 
 const emptyForm: PatientForm = {
   fullName: '',
@@ -301,8 +236,10 @@ function uploadUrl(patientId: string, file?: PatientAttachment) {
 
 export default function PatientsPage() {
   const router = useRouter();
-  const [patients, setPatients] = useState<Patient[]>(demoPatients);
-  const [categories, setCategories] = useState<PatientCategory[]>(demoCategories);
+  const session = decodeSession();
+  const isAdmin = session?.role === 'SUPER_ADMIN';
+  const [patients, setPatients] = useState<Patient[]>([]);
+  const [categories, setCategories] = useState<PatientCategory[]>([]);
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [view, setView] = useState<'grid' | 'table'>('grid');
@@ -318,6 +255,7 @@ export default function PatientsPage() {
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState<PatientForm>(emptyForm);
   const [filters, setFilters] = useState({
+    status: 'active',
     gender: '',
     city: '',
     categoryId: '',
@@ -362,7 +300,7 @@ export default function PatientsPage() {
       const data = (await response.json()) as PatientCategory[];
       if (data.length) setCategories(data);
     } catch {
-      setCategories(demoCategories);
+      setCategories([]);
     }
   }
 
@@ -393,7 +331,7 @@ export default function PatientsPage() {
       setPages(Array.isArray(result) ? 1 : result.meta?.pages ?? 1);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudieron cargar los pacientes');
-      setPatients(demoPatients);
+      setPatients([]);
       setPages(1);
     } finally {
       setLoading(false);
@@ -413,6 +351,7 @@ export default function PatientsPage() {
 
   const activeChips = useMemo(() => {
     const chips: Array<{ key: keyof typeof filters; label: string }> = [];
+    if (filters.status !== 'active') chips.push({ key: 'status', label: `Registro: ${filters.status === 'inactive' ? 'Desactivados' : filters.status === 'archived' ? 'Archivados' : 'Todos'}` });
     if (filters.gender) chips.push({ key: 'gender', label: `Sexo: ${genderLabel(filters.gender as Gender)}` });
     if (filters.city) chips.push({ key: 'city', label: `Ciudad: ${filters.city}` });
     if (filters.categoryId) chips.push({ key: 'categoryId', label: categories.find((item) => item.id === filters.categoryId)?.name ?? 'Categoria' });
@@ -470,12 +409,18 @@ export default function PatientsPage() {
     setError('');
     const payload = Object.fromEntries(Object.entries(form).map(([key, value]) => [key, value || undefined]));
     const optimistic: Patient = {
-      ...(editing ?? demoPatients[0]),
       id: editing?.id ?? `tmp-${Date.now()}`,
       patientCode: editing?.patientCode ?? 'Nuevo',
-      ...payload,
+      fullName: form.fullName,
       birthDate: form.birthDate,
       gender: form.gender,
+      clinicalStatus: form.clinicalStatus,
+      status: 'ACTIVE',
+      patientAttachments: [],
+      medicalRecords: [],
+      appointments: [],
+      clinicalAlerts: [],
+      ...payload,
       category: categories.find((category) => category.id === form.categoryId) ?? null,
     } as Patient;
     setPatients((current) => (editing ? current.map((patient) => (patient.id === editing.id ? optimistic : patient)) : [optimistic, ...current]));
@@ -506,7 +451,8 @@ export default function PatientsPage() {
   }
 
   async function deletePatient(patient: Patient) {
-    const confirmed = window.confirm('¿Está seguro que desea eliminar este registro? Esta acción lo ocultará del sistema, pero quedará registrado en auditoría.');
+    const historyCount = (patient.medicalRecords?.length ?? 0) + (patient.patientAttachments?.length ?? 0);
+    const confirmed = window.confirm(`¿Archivar a ${patient.fullName}?${historyCount ? ' Tiene historial clínico; no se borrará físicamente y quedará protegido en auditoría.' : ''}`);
     if (!confirmed) return;
     const reason = window.prompt(`Motivo para archivar a ${patient.fullName}`);
     if (!reason?.trim()) {
@@ -527,6 +473,47 @@ export default function PatientsPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo archivar el paciente');
       await loadPatients();
+    }
+  }
+
+  async function togglePatient(patient: Patient, activate: boolean) {
+    const action = activate ? 'reactivar' : 'desactivar';
+    if (!window.confirm(`¿Desea ${action} a ${patient.fullName}?`)) return;
+    const reason = window.prompt(`Motivo para ${action} el paciente:`);
+    if (!reason?.trim()) return;
+    try {
+      const response = await fetch(`${apiBase}/api/patients/${patient.id}/${activate ? 'activate' : 'deactivate'}`, {
+        method: 'PATCH',
+        headers: authHeaders(),
+        body: JSON.stringify({ reason }),
+      });
+      if (!response.ok) throw new Error(`No se pudo ${action} el paciente`);
+      setToast(activate ? 'Paciente reactivado correctamente' : 'Paciente desactivado correctamente');
+      setSelectedPatient(null);
+      setIsPreviewOpen(false);
+      await loadPatients();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : `No se pudo ${action} el paciente`);
+    }
+  }
+
+  async function restorePatient(patient: Patient) {
+    if (!window.confirm(`¿Restaurar a ${patient.fullName} al listado activo?`)) return;
+    const reason = window.prompt('Motivo de restauración:');
+    if (!reason?.trim()) return;
+    try {
+      const response = await fetch(`${apiBase}/api/patients/${patient.id}/restore`, {
+        method: 'PATCH',
+        headers: authHeaders(),
+        body: JSON.stringify({ reason }),
+      });
+      if (!response.ok) throw new Error('No se pudo restaurar el paciente');
+      setToast('Paciente restaurado correctamente');
+      setSelectedPatient(null);
+      setIsPreviewOpen(false);
+      await loadPatients();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo restaurar el paciente');
     }
   }
 
@@ -647,7 +634,8 @@ export default function PatientsPage() {
                 </button>
               </div>
 
-              <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
+              <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-7">
+                <Select label="Registro" value={filters.status} onChange={(value) => setFilters((current) => ({ ...current, status: value }))} options={[['active', 'Activos'], ['inactive', 'Desactivados'], ['archived', 'Archivados'], ['all', 'Todos']]} />
                 <Select label="Sexo" value={filters.gender} onChange={(value) => setFilters((current) => ({ ...current, gender: value }))} options={[['', 'Todos'], ['FEMALE', 'Femenino'], ['MALE', 'Masculino'], ['OTHER', 'Otro']]} />
                 <TextFilter label="Ciudad" value={filters.city} onChange={(value) => setFilters((current) => ({ ...current, city: value }))} />
                 <label className="grid gap-1 text-xs font-medium text-slate-500">
@@ -725,6 +713,9 @@ export default function PatientsPage() {
           onClose={closePreview}
           onEdit={openEdit}
           onDelete={deletePatient}
+          onToggle={togglePatient}
+          onRestore={restorePatient}
+          isAdmin={isAdmin}
           onUpload={(files) => void uploadFiles(files, selectedPatient)}
           saving={saving}
         />
@@ -776,6 +767,7 @@ function PatientCard({ patient, query, onPreview, onEdit }: { patient: Patient; 
       </div>
 
       <div className="mt-4 flex flex-wrap gap-2">
+        {(patient.isDeleted || patient.status === 'INACTIVE') && <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-800">{patient.isDeleted ? 'Archivado' : 'Desactivado'}</span>}
         <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium text-white" style={{ backgroundColor: patient.category?.color ?? categoryStyles[patient.category?.name ?? '']?.color ?? '#0f766e' }}>
           <CategoryIcon className="h-3.5 w-3.5" />
           {patient.category?.name ?? 'Sin categoría'}
@@ -866,15 +858,21 @@ function PreviewPanel({
   onClose,
   onEdit,
   onDelete,
+  onToggle,
+  onRestore,
   onUpload,
   saving,
+  isAdmin,
 }: {
   patient: Patient;
   onClose: () => void;
   onEdit: (patient: Patient) => void;
   onDelete: (patient: Patient) => void;
+  onToggle: (patient: Patient, activate: boolean) => void;
+  onRestore: (patient: Patient) => void;
   onUpload: (files: FileList | File[]) => void;
   saving: boolean;
+  isAdmin: boolean;
 }) {
   const latestRecord = patient.medicalRecords?.[0];
   const latestEvolution = latestRecord?.evolutionNotes?.[0];
@@ -928,10 +926,24 @@ function PreviewPanel({
               <Edit3 className="h-4 w-4" />
               Editar
             </button>
-            <button onClick={() => void onDelete(patient)} className="inline-flex h-9 items-center gap-2 rounded-md border border-red-200 px-3 text-sm text-red-700 dark:border-red-900 dark:text-red-200">
-              <X className="h-4 w-4" />
-              Archivar paciente
-            </button>
+            {isAdmin && !patient.isDeleted && (
+              <button onClick={() => void onToggle(patient, patient.status === 'INACTIVE')} className="inline-flex h-9 items-center gap-2 rounded-md border border-amber-200 px-3 text-sm text-amber-700">
+                <RefreshCw className="h-4 w-4" />
+                {patient.status === 'INACTIVE' ? 'Reactivar paciente' : 'Desactivar paciente'}
+              </button>
+            )}
+            {isAdmin && patient.isDeleted && (
+              <button onClick={() => void onRestore(patient)} className="inline-flex h-9 items-center gap-2 rounded-md border border-teal-200 px-3 text-sm text-clinic-teal">
+                <RefreshCw className="h-4 w-4" />
+                Restaurar paciente
+              </button>
+            )}
+            {isAdmin && !patient.isDeleted && (
+              <button onClick={() => void onDelete(patient)} className="inline-flex h-9 items-center gap-2 rounded-md border border-red-200 px-3 text-sm text-red-700 dark:border-red-900 dark:text-red-200">
+                <X className="h-4 w-4" />
+                Eliminar (archivar)
+              </button>
+            )}
           </div>
 
           <section className="grid gap-3 md:grid-cols-3">

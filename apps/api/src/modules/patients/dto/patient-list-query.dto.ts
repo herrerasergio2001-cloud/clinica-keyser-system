@@ -33,7 +33,7 @@ export class PatientListQueryDto {
 
   @IsOptional()
   @IsString()
-  status?: 'active' | 'archived' | 'all';
+  status?: 'active' | 'inactive' | 'archived' | 'all';
 
   @IsOptional()
   @Type(() => Number)

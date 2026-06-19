@@ -20,7 +20,8 @@
     "prisma:migrate": "prisma migrate dev --schema=./database/prisma/schema.prisma",
     "prisma:deploy": "prisma migrate deploy --schema=./database/prisma/schema.prisma",
     "prisma:reset": "prisma migrate reset --schema=./database/prisma/schema.prisma --force",
-    "seed": "node --import tsx database/seed/seed.ts"
+    "seed": "node --import tsx database/seed/seed.ts",
+    "cleanup:production": "node database/scripts/cleanup-production.mjs"
   },
   "devDependencies": {
     "concurrently": "^9.1.0",

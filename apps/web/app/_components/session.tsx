@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { ReactNode, useEffect, useMemo, useState } from 'react';
 import {
   Activity,
+  BookOpenText,
   CalendarDays,
   FileSignature,
   FlaskConical,
@@ -13,6 +14,7 @@ import {
   PackageSearch,
   Pill,
   Settings,
+  ShieldCheck,
   UserCircle,
   UserCog,
   UsersRound,
@@ -50,12 +52,15 @@ const baseNav = [
   { label: 'Expediente', href: '/expediente', icon: Activity, roles: ['SUPER_ADMIN', 'DOCTOR', 'RECEPTION', 'LABORATORY', 'ASSISTANT'] },
   { label: 'Farmacia', href: '/farmacia', icon: Pill, roles: ['SUPER_ADMIN', 'PHARMACY'] },
   { label: 'Laboratorio', href: '/laboratorio', icon: FlaskConical, roles: ['SUPER_ADMIN', 'DOCTOR', 'LABORATORY'] },
+  { label: 'Crear orden', href: '/laboratorio/ordenes/nueva', icon: FileSignature, roles: ['RECEPTION'] },
   { label: 'Productos', href: '/farmacia/productos', icon: Pill, roles: ['SUPER_ADMIN', 'PHARMACY'] },
   { label: 'Inventario', href: '/farmacia/inventario', icon: PackageSearch, roles: ['SUPER_ADMIN', 'PHARMACY'] },
   { label: 'Punto de venta', href: '/farmacia/venta', icon: PackageSearch, roles: ['SUPER_ADMIN', 'PHARMACY', 'CASHIER'] },
   { label: 'Usuarios y médicos', href: '/usuarios', icon: UserCog, roles: ['SUPER_ADMIN'] },
   { label: 'Configuración clínica', href: '/configuracion/clinica', icon: Settings, roles: ['SUPER_ADMIN'] },
   { label: 'Recetas y documentos', href: '/recetas/nueva', icon: FileSignature, roles: ['SUPER_ADMIN', 'DOCTOR', 'RECEPTION'] },
+  { label: 'Recetario Digital', href: '/recetario', icon: BookOpenText, roles: ['SUPER_ADMIN', 'DOCTOR', 'PHARMACY'] },
+  { label: 'Auditoría', href: '/auditoria', icon: ShieldCheck, roles: ['SUPER_ADMIN'] },
   { label: 'Página pública', href: '/admin/pagina-publica', icon: Settings, roles: ['SUPER_ADMIN'] },
 ];
 
@@ -112,8 +117,10 @@ export function canAccess(role: string | undefined, module: string) {
     users: ['SUPER_ADMIN'],
     clinicSettings: ['SUPER_ADMIN'],
     prescriptions: ['SUPER_ADMIN', 'DOCTOR'],
+    digitalPrescriptions: ['SUPER_ADMIN', 'DOCTOR', 'PHARMACY'],
+    audit: ['SUPER_ADMIN'],
     pharmacy: ['SUPER_ADMIN', 'PHARMACY'],
-    laboratory: ['SUPER_ADMIN', 'DOCTOR', 'LABORATORY'],
+    laboratory: ['SUPER_ADMIN', 'DOCTOR', 'LABORATORY', 'RECEPTION'],
     expediente: ['SUPER_ADMIN', 'DOCTOR', 'RECEPTION', 'LABORATORY', 'ASSISTANT'],
     patients: ['SUPER_ADMIN', 'DOCTOR', 'RECEPTION', 'ASSISTANT'],
     appointments: ['SUPER_ADMIN', 'DOCTOR', 'RECEPTION', 'ASSISTANT'],
