@@ -181,6 +181,8 @@ async function main() {
     const demoProducts = await tx.product.findMany({ where: { productCode: { in: demoProductCodes } }, select: { id: true } });
     const productIds = demoProducts.map((product) => product.id);
     if (productIds.length) {
+      await tx.pharmacySaleItem.deleteMany({ where: { productId: { in: productIds } } });
+      await tx.posSaleItem.deleteMany({ where: { productId: { in: productIds } } });
       await tx.inventoryMovement.deleteMany({ where: { productId: { in: productIds } } });
       await tx.productBatch.deleteMany({ where: { productId: { in: productIds } } });
       await tx.product.deleteMany({ where: { id: { in: productIds } } });
