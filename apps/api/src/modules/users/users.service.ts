@@ -8,6 +8,14 @@ import { PrismaService } from '../../shared/prisma/prisma.service';
 import { CreateUserDto, UpdateUserDto } from './dto/create-user.dto';
 import { UsersRepository } from './users.repository';
 
+const allowedOperationalRoles = new Set<RoleName>([
+  RoleName.SUPER_ADMIN,
+  RoleName.RECEPTION,
+  RoleName.LABORATORY,
+  RoleName.PHARMACY,
+  RoleName.DOCTOR,
+]);
+
 @Injectable()
 export class UsersService {
   constructor(
@@ -178,6 +186,9 @@ export class UsersService {
   }
 
   private async validateUserPayload(dto: Partial<CreateUserDto & UpdateUserDto>) {
+    if (dto.role && !allowedOperationalRoles.has(dto.role)) {
+      throw new BadRequestException('Rol no permitido. Use SUPER_ADMIN, RECEPCIÓN, LABORATORIO, FARMACIA o MÉDICO EVENTUAL.');
+    }
     if (dto.role === RoleName.DOCTOR) {
       if (!dto.professionalName?.trim()) throw new BadRequestException('El nombre profesional es obligatorio para médicos');
       if (!dto.minsaCode?.trim()) throw new BadRequestException('El código MINSA es obligatorio para médicos');
