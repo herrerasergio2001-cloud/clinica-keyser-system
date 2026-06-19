@@ -52,14 +52,12 @@ npm run dev
 
 - Frontend: http://localhost:3000
 - Backend API: http://localhost:3001/api
-- Orthanc local: http://localhost:8042
-- Orthanc red local: http://192.168.0.19:8042
 - PostgreSQL: localhost:5432
 
 ## Acceso inicial
 
 El seed no publica ni reutiliza contraseñas de prueba. Para crear el administrador
-inicial puede definir `SEED_ADMIN_PASSWORD` antes de ejecutar el seed. En una
+inicial debe definir `SEED_ADMIN_EMAIL` y `SEED_ADMIN_PASSWORD` antes de ejecutar el seed. En una
 instalación existente, restablezca la contraseña mediante el script seguro
 `database/scripts/reset-password.mjs`.
 
@@ -82,80 +80,33 @@ El servicio `postgres` usa:
 
 - Base de datos: `clinic_keyser`
 - Usuario: `clinic`
-- Password: `clinic`
-- Puerto local: `5432`
+- Password: valor fuerte definido en `.env` o en Coolify
+- Puerto local: solo en desarrollo
 - Volumen persistente: `postgres_data`
 
 Cuando el API corre fuera de Docker usa:
 
 ```env
-DATABASE_URL=postgresql://clinic:clinic@localhost:5432/clinic_keyser?schema=public
+DATABASE_URL=postgresql://clinic:<password-local>@localhost:5432/clinic_keyser?schema=public
 ```
 
 Cuando el API corre dentro de Docker Compose, `docker-compose.yml` sobrescribe `DATABASE_URL` para usar el host interno:
 
 ```env
-DATABASE_URL=postgresql://clinic:clinic@postgres:5432/clinic_keyser?schema=public
+DATABASE_URL=postgresql://clinic:<password-docker>@postgres:5432/clinic_keyser?schema=public
 ```
 
 ## RIS/PACS
 
-El seed crea una configuracion DICOM inicial en la tabla `DicomConfiguration`. Puede ajustarse desde variables de entorno antes de correr `npm run seed`:
+Orthanc/DICOM no forma parte del despliegue activo de producción. Los archivos en
+`docker/orthanc/` se conservan únicamente como referencia histórica o para pruebas
+locales futuras. No exponga puertos DICOM públicamente sin una revisión de red y
+autenticación específica.
 
-```env
-ORTHANC_URL=http://192.168.0.19:8042
-ORTHANC_DICOM_PORT=4242
-ORTHANC_AET=ORTHANC
-ORTHANC_USER=admin
-ORTHANC_PASSWORD=1234
-SONOSCAPE_AET=SONOSCAPE
-WORKLIST_DIRECTORY=./docker/orthanc/worklists
-OHIF_URL=
-DICOM_INTEGRATION_ENABLED=false
-```
+## Producción
 
-No se recomienda guardar contrasenas reales en el repositorio. Use `.env` local o variables del entorno de despliegue.
-
-## Configuracion SonoScape PACS
-
-En el SonoScape, configure el PACS de almacenamiento asi:
-
-- Service Type: `Almacenamiento`
-- Service Name: `ORTHANC`
-- AE Title PACS: `ORTHANC`
-- IP servidor: `192.168.0.19`
-- Puerto DICOM: `4242`
-- Puerto web Orthanc: `8042`
-- URL Orthanc: http://192.168.0.19:8042
-
-Orthanc se levanta desde Docker Compose con:
-
-- Web HTTP: `8042:8042`
-- DICOM: `4242:4242`
-- AE Title: `ORTHANC`
-- `DicomAlwaysAllowEcho`: `true`
-- `DicomCheckCalledAet`: `false`
-- `DicomCheckModalityHost`: `false`
-
-La configuracion esta en `docker/orthanc/orthanc.json`. Si conoce la IP real del SonoScape, reemplace `IP_DEL_ULTRASONIDO` en:
-
-```json
-"SONOSCAPE": ["SONOSCAPE", "IP_DEL_ULTRASONIDO", 104]
-```
-
-Luego reinicie Orthanc:
-
-```bash
-docker compose restart orthanc
-```
-
-Para revisar estado y logs:
-
-```bash
-docker compose config
-docker compose ps
-docker logs clinica-keyser-orthanc --tail=100
-```
+Ver `docs/production-audit.md` para arquitectura de despliegue, respaldos,
+recuperación ante fallos, dominios y checklist operativo.
 
 ## Verificacion Recomendada
 
