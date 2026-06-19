@@ -6,13 +6,13 @@ import { join } from 'path';
 import { AuditService } from '../audit/audit.service';
 import { CurrentUser } from '../../shared/decorators/current-user.decorator';
 import { FileStorage } from '../../shared/storage/file-storage';
+import { PrismaService } from '../../shared/prisma/prisma.service';
 import { SafeDeleteDto } from '../../shared/dto/safe-delete.dto';
 import { CreatePatientDto } from './dto/create-patient.dto';
 import {
   CreateClinicalAlertDto,
   CreatePatientAppointmentDto,
   CreatePatientCategoryDto,
-  CreatePatientEvolutionDto,
   UploadPatientAttachmentDto,
 } from './dto/patient-actions.dto';
 import { PatientListQueryDto } from './dto/patient-list-query.dto';
@@ -32,6 +32,7 @@ export class PatientsService {
     private readonly patients: PatientsRepository,
     private readonly audit: AuditService,
     private readonly config: ConfigService,
+    private readonly prisma: PrismaService,
     @Inject('FileStorage') private readonly storage: FileStorage,
   ) {}
 
@@ -140,6 +141,50 @@ export class PatientsService {
 
   async delete(id: string, actor?: CurrentUser, ipAddress?: string) {
     return this.archive(id, { reason: 'Archivado desde acción de eliminación segura' }, actor, ipAddress);
+  }
+
+  async hardDelete(id: string, dto: SafeDeleteDto, actor: CurrentUser, ipAddress?: string) {
+    const before = await this.findById(id);
+    await this.prisma.$transaction(async (tx) => {
+      await tx.pharmacySaleItem.deleteMany({ where: { sale: { patientId: id } } });
+      await tx.pharmacySale.deleteMany({ where: { patientId: id } });
+      await tx.invoice.deleteMany({ where: { patientId: id } });
+      await tx.posSaleItem.deleteMany({ where: { sale: { patientId: id } } });
+      await tx.posSale.deleteMany({ where: { patientId: id } });
+      await tx.labResultValue.deleteMany({ where: { result: { patientId: id } } });
+      await tx.labResult.deleteMany({ where: { patientId: id } });
+      await tx.laboratoryResult.deleteMany({ where: { patientId: id } });
+      await tx.prescriptionItem.deleteMany({ where: { prescription: { patientId: id } } });
+      await tx.prescription.deleteMany({ where: { patientId: id } });
+      await tx.labOrderItem.deleteMany({ where: { order: { patientId: id } } });
+      await tx.labOrderExternal.deleteMany({ where: { patientId: id } });
+      await tx.labOrder.deleteMany({ where: { patientId: id } });
+      await tx.imagingOrder.deleteMany({ where: { patientId: id } });
+      await tx.ultrasoundReport.deleteMany({ where: { patientId: id } });
+      await tx.pacsStudy.deleteMany({ where: { patientDbId: id } });
+      await tx.ultrasoundOrder.deleteMany({ where: { patientId: id } });
+      await tx.medicalCertificate.deleteMany({ where: { patientId: id } });
+      await tx.consentDocument.deleteMany({ where: { patientId: id } });
+      await tx.clinicalEvent.deleteMany({ where: { patientId: id } });
+      await tx.printableDocument.deleteMany({ where: { patientId: id } });
+      await tx.appointment.deleteMany({ where: { patientId: id } });
+      await tx.fileAttachment.deleteMany({ where: { patientId: id } });
+      await tx.patientAttachment.deleteMany({ where: { patientId: id } });
+      await tx.clinicalAlert.deleteMany({ where: { patientId: id } });
+      await tx.emergencyContact.deleteMany({ where: { patientId: id } });
+      await tx.medicalRecord.deleteMany({ where: { patientId: id } });
+      await tx.patient.delete({ where: { id } });
+    }, { timeout: 60_000 });
+    await this.audit.record({
+      actorId: actor.sub,
+      action: AuditAction.DELETE,
+      entity: 'Patient',
+      entityId: id,
+      ipAddress,
+      before,
+      after: { permanentlyDeleted: true, reason: dto.reason },
+    });
+    return { success: true };
   }
 
   async archive(id: string, dto: SafeDeleteDto, actor?: CurrentUser, ipAddress?: string) {
@@ -309,30 +354,4 @@ export class PatientsService {
     return appointment;
   }
 
-  async listEvolutions(id: string) {
-    await this.findById(id);
-    return this.patients.listEvolutions(id);
-  }
-
-  async createEvolution(id: string, dto: CreatePatientEvolutionDto, actor?: CurrentUser, ipAddress?: string) {
-    const patient = await this.findById(id);
-    const medicalRecord = dto.medicalRecordId ? patient.medicalRecords.find((record) => record.id === dto.medicalRecordId) : await this.patients.latestMedicalRecord(id);
-    if (!medicalRecord) throw new BadRequestException('Patient needs a clinical record before adding an evolution note');
-    const doctorId = actor?.sub ?? medicalRecord.doctorId;
-    const note = await this.patients.createEvolution({
-      medicalRecord: { connect: { id: medicalRecord.id } },
-      patientId: id,
-      doctor: { connect: { id: doctorId } },
-      noteDate: new Date(),
-      subjective: dto.subjective,
-      objective: dto.objective,
-      assessment: dto.assessment,
-      plan: dto.plan,
-      doctorName: actor?.email ?? 'Medico',
-      createdById: doctorId,
-      updatedById: doctorId,
-    });
-    await this.audit.record({ actorId: actor?.sub, action: AuditAction.CREATE, entity: 'EvolutionNote', entityId: note.id, ipAddress, after: note });
-    return note;
-  }
 }

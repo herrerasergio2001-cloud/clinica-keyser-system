@@ -230,7 +230,8 @@ export class PublicSiteService {
   }
 
   private promotionData(dto: PublicPromotionDto) {
-    const { slug: _slug, startDate, endDate, ...data } = dto;
+    const { slug, startDate, endDate, ...data } = dto;
+    void slug;
     return {
       ...data,
       startDate: startDate ? new Date(startDate) : undefined,
@@ -239,7 +240,8 @@ export class PublicSiteService {
   }
 
   private newsData(dto: PublicNewsDto) {
-    const { slug: _slug, publishedAt, ...data } = dto;
+    const { slug, publishedAt, ...data } = dto;
+    void slug;
     return {
       ...data,
       publishedAt: publishedAt ? new Date(publishedAt) : undefined,

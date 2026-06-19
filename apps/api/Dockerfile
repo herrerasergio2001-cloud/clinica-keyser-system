@@ -17,6 +17,7 @@ WORKDIR /app
 
 COPY database ./database
 COPY apps/api ./apps/api
+COPY apps/web/public/clinica-keyser-logo.jpg ./apps/api/assets/clinica-keyser-logo.jpg
 COPY shared ./shared
 
 # This runs inside Linux, never against node_modules generated on macOS.
@@ -36,6 +37,7 @@ ENV API_PORT=3001
 COPY --from=build /app/node_modules /app/node_modules
 COPY --from=build /app/apps/api/package.json ./package.json
 COPY --from=build /app/apps/api/dist ./dist
+COPY --from=build /app/apps/api/assets ./assets
 COPY --from=build /app/database /app/database
 
 EXPOSE 3001

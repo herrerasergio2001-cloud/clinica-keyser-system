@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { AuditAction, Prisma } from '@prisma/client';
-import PDFDocument from 'pdfkit';
+import PDFDocument = require('pdfkit');
 import { CurrentUser } from '../../shared/decorators/current-user.decorator';
 import { SafeDeleteDto } from '../../shared/dto/safe-delete.dto';
 import { PrismaService } from '../../shared/prisma/prisma.service';
@@ -71,6 +71,28 @@ export class LaboratoryService {
       after: { order, reason: dto.reason },
     });
     return order;
+  }
+
+  async deleteOrder(id: string, dto: SafeDeleteDto, actor: CurrentUser) {
+    const before = await this.prisma.labOrder.findUnique({
+      where: { id },
+      include: { patient: true, labResults: { include: { values: true } } },
+    });
+    if (!before) throw new NotFoundException('Orden no encontrada');
+    await this.prisma.$transaction(async (tx) => {
+      await tx.labResultValue.deleteMany({ where: { result: { orderId: id } } });
+      await tx.labResult.deleteMany({ where: { orderId: id } });
+      await tx.labOrder.delete({ where: { id } });
+    });
+    await this.audit.record({
+      actorId: actor.sub,
+      action: AuditAction.DELETE,
+      entity: 'LabOrder',
+      entityId: id,
+      before,
+      after: { permanentlyDeleted: true, reason: dto.reason },
+    });
+    return { success: true };
   }
 
   templates() {

@@ -1,6 +1,9 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { AuditAction, Prisma } from '@prisma/client';
-import PDFDocument from 'pdfkit';
+import { existsSync } from 'fs';
+import { join, normalize } from 'path';
+import PDFDocument = require('pdfkit');
 import { AuditService } from '../audit/audit.service';
 import { CurrentUser } from '../../shared/decorators/current-user.decorator';
 import { SafeDeleteDto } from '../../shared/dto/safe-delete.dto';
@@ -16,6 +19,7 @@ export class DigitalPrescriptionsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    private readonly config: ConfigService,
   ) {}
 
   async list(query: DigitalPrescriptionQueryDto = {}) {
@@ -41,7 +45,10 @@ export class DigitalPrescriptionsService {
     const [data, total] = await this.prisma.$transaction([
       this.prisma.digitalPrescription.findMany({
         where,
-        include: { versions: { orderBy: { version: 'desc' }, take: 5 } },
+        include: {
+          doctor: { include: { doctorProfile: true } },
+          versions: { orderBy: { version: 'desc' }, take: 5 },
+        },
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * limit,
         take: limit,
@@ -55,6 +62,7 @@ export class DigitalPrescriptionsService {
     const prescription = await this.prisma.digitalPrescription.findUnique({
       where: { id },
       include: {
+        doctor: { include: { doctorProfile: true } },
         versions: {
           include: { editedBy: { select: { id: true, fullName: true, email: true } } },
           orderBy: { version: 'desc' },
@@ -96,11 +104,9 @@ export class DigitalPrescriptionsService {
   }
 
   async update(id: string, dto: UpdateDigitalPrescriptionDto, actor: CurrentUser, ipAddress?: string) {
+    this.assertAdmin(actor, 'Solo el administrador puede editar recetas guardadas');
     const before = await this.findById(id);
     if (before.status !== 'ACTIVE') throw new BadRequestException('Una receta anulada no puede modificarse');
-    if (before.doctorId !== actor.sub && actor.role !== 'SUPER_ADMIN') {
-      throw new ForbiddenException('Solo el médico emisor o el administrador pueden editar esta receta');
-    }
     this.assertContent(dto);
     const prescription = await this.prisma.$transaction(async (tx) => {
       await tx.digitalPrescriptionVersion.create({
@@ -138,11 +144,9 @@ export class DigitalPrescriptionsService {
   }
 
   async void(id: string, dto: SafeDeleteDto, actor: CurrentUser, ipAddress?: string) {
+    this.assertAdmin(actor, 'Solo el administrador puede anular recetas guardadas');
     const before = await this.findById(id);
     if (before.status === 'VOIDED') throw new BadRequestException('La receta ya está anulada');
-    if (before.doctorId !== actor.sub && actor.role !== 'SUPER_ADMIN') {
-      throw new ForbiddenException('Solo el médico emisor o el administrador pueden anular esta receta');
-    }
     const prescription = await this.prisma.digitalPrescription.update({
       where: { id },
       data: {
@@ -164,6 +168,22 @@ export class DigitalPrescriptionsService {
     return prescription;
   }
 
+  async hardDelete(id: string, dto: SafeDeleteDto, actor: CurrentUser, ipAddress?: string) {
+    if (actor.role !== 'SUPER_ADMIN') throw new ForbiddenException('Solo SUPER_ADMIN puede eliminar recetas definitivamente');
+    const before = await this.findById(id);
+    await this.prisma.digitalPrescription.delete({ where: { id } });
+    await this.audit.record({
+      actorId: actor.sub,
+      action: AuditAction.DELETE,
+      entity: 'DigitalPrescription',
+      entityId: id,
+      ipAddress,
+      before,
+      after: { permanentlyDeleted: true, reason: dto.reason },
+    });
+    return { success: true };
+  }
+
   async pdf(id: string, actor: CurrentUser) {
     const prescription = await this.findById(id);
     const settings = await this.prisma.clinicSettings.findFirst({ orderBy: { createdAt: 'asc' } });
@@ -172,18 +192,27 @@ export class DigitalPrescriptionsService {
     doc.on('data', (chunk: Buffer) => chunks.push(chunk));
     const done = new Promise<Buffer>((resolve) => doc.on('end', () => resolve(Buffer.concat(chunks))));
 
-    doc.fontSize(19).fillColor(settings?.primaryColor ?? '#1f2f66').text(settings?.clinicName ?? 'Clínica Keyser');
-    doc.fontSize(10).fillColor('#475569').text(settings?.address ?? '');
-    doc.text(settings?.phoneMain ? `Teléfono: ${settings.phoneMain}` : '');
-    doc.moveDown();
-    doc.fontSize(15).fillColor('#0f172a').text(`Talonario Digital · ${prescription.code}`);
+    const logo = this.assetPath(settings?.printLogoUrl ?? settings?.logoUrl, 'clinica-keyser-logo.jpg');
+    if (logo) {
+      try {
+        doc.image(logo, 48, 38, { width: 58, height: 58, fit: [58, 58] });
+      } catch {
+        // Un logotipo inválido no debe impedir la generación de la receta.
+      }
+    }
+    doc.fontSize(19).fillColor(settings?.primaryColor ?? '#1f2f66').text(settings?.clinicName ?? 'Clínica Keyser', 118, 42);
+    doc.fontSize(9).fillColor('#475569').text(settings?.address ?? '', 118, 68, { width: 390 });
+    doc.text(settings?.phoneMain ? `Teléfono: ${settings.phoneMain}` : '', 118, 84);
+    doc.moveTo(48, 112).lineTo(564, 112).strokeColor(settings?.secondaryColor ?? '#ef2f32').stroke();
+    doc.y = 128;
+    doc.fontSize(15).fillColor('#0f172a').text(`Receta · ${prescription.code}`);
     if (prescription.status === 'VOIDED') {
       doc.fontSize(12).fillColor('#b91c1c').text(`ANULADA · ${prescription.voidReason ?? 'Sin motivo registrado'}`);
     }
     doc.moveDown();
     doc.fontSize(11).fillColor('#0f172a').text(`Paciente: ${prescription.patientName}`);
     if (prescription.patientAge) doc.text(`Edad: ${prescription.patientAge}`);
-    doc.text(`Fecha: ${prescription.createdAt.toLocaleString('es-NI')}`);
+    doc.text(`Fecha y hora: ${prescription.createdAt.toLocaleString('es-NI')}`);
     if (prescription.diagnosis) doc.moveDown().font('Helvetica-Bold').text('Diagnóstico').font('Helvetica').text(prescription.diagnosis);
     const medications = this.jsonItems(prescription.medications);
     if (medications.length) {
@@ -196,9 +225,20 @@ export class DigitalPrescriptionsService {
       studies.forEach((item, index) => doc.text(`${index + 1}. ${item}`));
     }
     if (prescription.indications) doc.moveDown().font('Helvetica-Bold').text('Indicaciones').font('Helvetica').text(prescription.indications);
-    doc.moveDown(2).text(`Dr(a). ${prescription.doctorName}`);
-    doc.text(`Código profesional: ${prescription.doctorCode}`);
-    doc.text(`Versión: ${prescription.version}`);
+    doc.moveDown(2);
+    const signature = this.assetPath(prescription.doctor.doctorProfile?.signatureUrl);
+    if (signature) {
+      try {
+        doc.image(signature, doc.page.width / 2 - 65, doc.y, { fit: [130, 55], align: 'center' });
+        doc.moveDown(4);
+      } catch {
+        // La firma es opcional y puede omitirse si el archivo está dañado.
+      }
+    }
+    doc.fontSize(10).fillColor('#111827').text('__________________________________', { align: 'center' });
+    doc.text(`Dr(a). ${prescription.doctorName}`, { align: 'center' });
+    doc.text(`Código profesional: ${prescription.doctorCode}`, { align: 'center' });
+    doc.fontSize(8).fillColor('#64748b').text(`Versión ${prescription.version} · Emitida electrónicamente por Clínica Keyser`, { align: 'center' });
     doc.end();
 
     await this.audit.record({ actorId: actor.sub, action: AuditAction.PRINT, entity: 'DigitalPrescription', entityId: id });
@@ -249,5 +289,32 @@ export class DigitalPrescriptionsService {
 
   private jsonItems(value: Prisma.JsonValue) {
     return Array.isArray(value) ? value.map(String).filter(Boolean) : [];
+  }
+
+  private assertAdmin(actor: CurrentUser, message: string) {
+    if (!['SUPER_ADMIN', 'ADMIN'].includes(actor.role)) throw new ForbiddenException(message);
+  }
+
+  private assetPath(url?: string | null, fallbackName?: string) {
+    const root = this.config.get<string>('LOCAL_STORAGE_ROOT') ?? './storage';
+    const candidates: string[] = [];
+    if (url) {
+      try {
+        const parsed = new URL(url, 'https://clinicakeyser.local');
+        const key = parsed.searchParams.get('key');
+        if (key) candidates.push(normalize(join(root, key)));
+      } catch {
+        // Una URL inválida no debe impedir la generación del PDF.
+      }
+      const relative = url.startsWith('/') ? url.slice(1) : url;
+      candidates.push(join(process.cwd(), relative));
+      candidates.push(join(process.cwd(), 'apps/web/public', relative));
+    }
+    if (fallbackName) {
+      candidates.push(join(process.cwd(), 'assets', fallbackName));
+      candidates.push(join(process.cwd(), 'apps/api/assets', fallbackName));
+      candidates.push(join(process.cwd(), 'apps/web/public', fallbackName));
+    }
+    return candidates.find((candidate) => existsSync(candidate));
   }
 }

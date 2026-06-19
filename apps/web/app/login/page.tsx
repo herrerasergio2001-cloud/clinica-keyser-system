@@ -3,8 +3,7 @@
 import { FormEvent, ReactNode, Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AlertTriangle, Loader2, LockKeyhole } from 'lucide-react';
-
-const apiBase = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
+import { apiBase, ensureAuthenticatedSession } from '../_components/api-client';
 
 export default function LoginPage() {
   return (
@@ -30,7 +29,11 @@ function LoginForm() {
       setMessage(sessionMessage);
       sessionStorage.removeItem('sessionMessage');
     }
-    if (localStorage.getItem('accessToken')) router.replace(next);
+    if (localStorage.getItem('accessToken') || localStorage.getItem('refreshToken')) {
+      void ensureAuthenticatedSession().then((valid) => {
+        if (valid) router.replace(next);
+      });
+    }
   }, [next, router]);
 
   async function submit(event: FormEvent) {

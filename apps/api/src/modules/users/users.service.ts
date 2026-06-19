@@ -106,16 +106,37 @@ export class UsersService {
     if (!before) throw new NotFoundException('Usuario no encontrado');
     if (before.role.name === RoleName.SUPER_ADMIN) await this.assertNotLastAdmin(id);
 
-    const dependencies = await this.findClinicalDependencies(id);
-    if (dependencies.length) {
-      throw new BadRequestException({
-        message: 'El usuario tiene historial asociado. Desactívelo o reasigne primero sus registros.',
-        dependencies,
-      });
-    }
-
     await this.prisma.$transaction(async (tx) => {
       await tx.session.deleteMany({ where: { userId: id } });
+      const columns = await tx.$queryRaw<Array<{ table_name: string; column_name: string }>>`
+        SELECT table_name, column_name
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND (
+            column_name ILIKE '%userId%'
+            OR column_name ILIKE '%doctorId%'
+            OR column_name ILIKE '%createdBy%'
+            OR column_name ILIKE '%updatedBy%'
+            OR column_name ILIKE '%deletedBy%'
+            OR column_name ILIKE '%disabledBy%'
+            OR column_name ILIKE '%voidedBy%'
+            OR column_name ILIKE '%cancelledBy%'
+            OR column_name ILIKE '%uploadedBy%'
+            OR column_name ILIKE '%validatedBy%'
+            OR column_name ILIKE '%reportingDoctorId%'
+          )
+          AND table_name NOT IN ('User', 'Session', 'AuditLog', 'DoctorProfile')
+        ORDER BY table_name, column_name
+      `;
+      for (const column of columns) {
+        const table = `"${column.table_name.replaceAll('"', '""')}"`;
+        const field = `"${column.column_name.replaceAll('"', '""')}"`;
+        await tx.$executeRawUnsafe(
+          `UPDATE ${table} SET ${field} = $1 WHERE ${field} = $2`,
+          actor.sub,
+          id,
+        );
+      }
       await tx.auditLog.updateMany({
         where: { actorId: id },
         data: { actorId: null, actorName: before.fullName, actorEmail: before.email },
@@ -136,7 +157,8 @@ export class UsersService {
   }
 
   private toResponse<T extends { passwordHash: string }>(user: T) {
-    const { passwordHash: _passwordHash, ...safeUser } = user;
+    const { passwordHash, ...safeUser } = user;
+    void passwordHash;
     return safeUser;
   }
 
@@ -153,40 +175,6 @@ export class UsersService {
       },
     });
     if (remaining < 1) throw new BadRequestException('No se puede eliminar o desactivar el último usuario administrador');
-  }
-
-  private async findClinicalDependencies(userId: string) {
-    const columns = await this.prisma.$queryRaw<Array<{ table_name: string; column_name: string }>>`
-      SELECT table_name, column_name
-      FROM information_schema.columns
-      WHERE table_schema = 'public'
-        AND (
-          column_name ILIKE '%userId%'
-          OR column_name ILIKE '%doctorId%'
-          OR column_name ILIKE '%createdBy%'
-          OR column_name ILIKE '%updatedBy%'
-          OR column_name ILIKE '%deletedBy%'
-          OR column_name ILIKE '%voidedBy%'
-          OR column_name ILIKE '%cancelledBy%'
-          OR column_name ILIKE '%uploadedBy%'
-          OR column_name ILIKE '%validatedBy%'
-          OR column_name ILIKE '%reportingDoctorId%'
-        )
-        AND table_name NOT IN ('User', 'Session', 'AuditLog', 'DoctorProfile')
-      ORDER BY table_name, column_name
-    `;
-    const dependencies: Array<{ resource: string; count: number }> = [];
-    for (const column of columns) {
-      const table = `"${column.table_name.replaceAll('"', '""')}"`;
-      const field = `"${column.column_name.replaceAll('"', '""')}"`;
-      const rows = await this.prisma.$queryRawUnsafe<Array<{ count: bigint }>>(
-        `SELECT COUNT(*)::bigint AS count FROM ${table} WHERE ${field} = $1`,
-        userId,
-      );
-      const count = Number(rows[0]?.count ?? 0);
-      if (count) dependencies.push({ resource: `${column.table_name}.${column.column_name}`, count });
-    }
-    return dependencies;
   }
 
   private async validateUserPayload(dto: Partial<CreateUserDto & UpdateUserDto>) {

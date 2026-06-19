@@ -67,7 +67,7 @@ type MedicalRecord = {
   doctor?: { fullName?: string | null } | null;
   vitalSigns?: VitalSigns | null;
   diagnoses?: Array<{ mainDiagnosis?: string | null; icd10Code?: string | null }>;
-  evolutionNotes?: Array<{ subjective?: string | null; assessment?: string | null; plan?: string | null; noteDate?: string | null }>;
+  evolutionNotes?: Array<{ content?: string | null; noteDate?: string | null }>;
 };
 
 type PatientAttachment = {
@@ -452,26 +452,26 @@ export default function PatientsPage() {
 
   async function deletePatient(patient: Patient) {
     const historyCount = (patient.medicalRecords?.length ?? 0) + (patient.patientAttachments?.length ?? 0);
-    const confirmed = window.confirm(`¿Archivar a ${patient.fullName}?${historyCount ? ' Tiene historial clínico; no se borrará físicamente y quedará protegido en auditoría.' : ''}`);
+    const confirmed = window.confirm(`¿Eliminar definitivamente a ${patient.fullName}?${historyCount ? ' También se eliminará su historial clínico, órdenes y archivos relacionados.' : ''} Esta acción no se puede deshacer.`);
     if (!confirmed) return;
-    const reason = window.prompt(`Motivo para archivar a ${patient.fullName}`);
+    const reason = window.prompt(`Escriba el motivo de eliminación definitiva de ${patient.fullName}`);
     if (!reason?.trim()) {
-      setError('Debe ingresar un motivo para archivar el paciente.');
+      setError('Debe ingresar un motivo para eliminar el paciente.');
       return;
     }
     setPatients((current) => current.filter((item) => item.id !== patient.id));
     try {
-      const response = await fetch(`${apiBase}/api/patients/${patient.id}/archive`, { method: 'PATCH', headers: authHeaders(), body: JSON.stringify({ reason }) });
+      const response = await fetch(`${apiBase}/api/patients/${patient.id}`, { method: 'DELETE', headers: authHeaders(), body: JSON.stringify({ reason }) });
       if (response.status === 401) {
         redirectToLogin();
         return;
       }
       if (!response.ok) throw new Error('No se pudo eliminar el paciente');
-      setToast('Paciente archivado correctamente');
+      setToast('Paciente eliminado definitivamente. La acción quedó registrada en auditoría.');
       setSelectedPatient(null);
       setIsPreviewOpen(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo archivar el paciente');
+      setError(err instanceof Error ? err.message : 'No se pudo eliminar el paciente');
       await loadPatients();
     }
   }
@@ -941,7 +941,7 @@ function PreviewPanel({
             {isAdmin && !patient.isDeleted && (
               <button onClick={() => void onDelete(patient)} className="inline-flex h-9 items-center gap-2 rounded-md border border-red-200 px-3 text-sm text-red-700 dark:border-red-900 dark:text-red-200">
                 <X className="h-4 w-4" />
-                Eliminar (archivar)
+                Eliminar definitivamente
               </button>
             )}
           </div>
@@ -960,7 +960,7 @@ function PreviewPanel({
             <div className="mt-3 grid gap-3 md:grid-cols-2">
               <Info label="Últimos signos vitales" value={vitals ? `PA ${vitals.bloodPressure ?? '-'} · FC ${vitals.heartRate ?? '-'} · IMC ${vitals.bmi ?? '-'}` : undefined} />
               <Info label="Último diagnóstico" value={latestRecord?.diagnosisText ?? latestRecord?.diagnoses?.[0]?.mainDiagnosis} />
-              <Info label="Última evolución" value={latestEvolution?.assessment ?? latestEvolution?.plan} />
+              <Info label="Última evolución" value={latestEvolution?.content} />
               <Info label="Próxima cita" value={formatDate(patient.appointments?.[0]?.startsAt ?? latestRecord?.nextAppointmentDate)} />
               <Info label="Alergias" value={patient.allergies} />
               <Info label="Enfermedades crónicas" value={patient.chronicDiseases} />

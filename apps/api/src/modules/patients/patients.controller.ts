@@ -14,7 +14,6 @@ import {
   CreateClinicalAlertDto,
   CreatePatientAppointmentDto,
   CreatePatientCategoryDto,
-  CreatePatientEvolutionDto,
   UploadPatientAttachmentDto,
 } from './dto/patient-actions.dto';
 import { PatientListQueryDto } from './dto/patient-list-query.dto';
@@ -71,8 +70,8 @@ export class PatientsController {
   @Delete(':id')
   @Roles('SUPER_ADMIN')
   @Permissions('patients:delete', 'patients:*')
-  delete(@Param('id') id: string, @CurrentUser() user: CurrentUser, @Ip() ipAddress: string) {
-    return this.patients.archive(id, { reason: 'Archivado desde acción de eliminación segura' }, user, ipAddress);
+  delete(@Param('id') id: string, @Body() dto: SafeDeleteDto, @CurrentUser() user: CurrentUser, @Ip() ipAddress: string) {
+    return this.patients.hardDelete(id, dto, user, ipAddress);
   }
 
   @Patch(':id/archive')
@@ -169,15 +168,4 @@ export class PatientsController {
     return this.patients.createAppointment(id, dto, user, ipAddress);
   }
 
-  @Get(':id/evolutions')
-  @Permissions('patients:read', 'patients:*')
-  listEvolutions(@Param('id') id: string) {
-    return this.patients.listEvolutions(id);
-  }
-
-  @Post(':id/evolutions')
-  @Permissions('patients:update', 'patients:*')
-  createEvolution(@Param('id') id: string, @Body() dto: CreatePatientEvolutionDto, @CurrentUser() user: CurrentUser, @Ip() ipAddress: string) {
-    return this.patients.createEvolution(id, dto, user, ipAddress);
-  }
 }

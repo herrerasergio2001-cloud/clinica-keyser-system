@@ -1,11 +1,8 @@
-import { IsDateString, IsOptional, IsString } from 'class-validator';
+import { IsDateString, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class CreateEvolutionNoteDto {
   @IsOptional() @IsDateString() noteDate?: string;
-  @IsOptional() @IsString() subjective?: string;
-  @IsOptional() @IsString() objective?: string;
-  @IsOptional() @IsString() assessment?: string;
-  @IsOptional() @IsString() plan?: string;
+  @IsString() @IsNotEmpty() content!: string;
   @IsOptional() @IsString() doctorName?: string;
 }
 

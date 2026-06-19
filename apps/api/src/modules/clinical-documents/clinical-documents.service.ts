@@ -217,6 +217,14 @@ export class ClinicalDocumentsService {
     return prescription;
   }
 
+  listPrescriptions(medicalRecordId?: string) {
+    return this.prisma.prescription.findMany({
+      where: medicalRecordId ? { medicalRecordId } : undefined,
+      include: this.prescriptionInclude(),
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
   async updatePrescription(id: string, dto: Partial<CreatePrescriptionDto>, actor: CurrentUser, ipAddress?: string) {
     await this.assertCanPrescribe(actor, ipAddress);
     const before = await this.getPrescription(id);
@@ -247,6 +255,18 @@ export class ClinicalDocumentsService {
     }
     await this.audit.record({ actorId: actor.sub, action: AuditAction.PRESCRIPTION_VOIDED, entity: 'Prescription', entityId: id, ipAddress, before, after: { prescription, reason: dto.reason } });
     return prescription;
+  }
+
+  async deletePrescription(id: string, dto: SafeDeleteDto, actor: CurrentUser, ipAddress?: string) {
+    const before = await this.prisma.prescription.findUnique({ where: { id }, include: this.prescriptionInclude() });
+    if (!before) throw new NotFoundException('Receta no encontrada');
+    await this.prisma.$transaction(async (tx) => {
+      await tx.prescription.delete({ where: { id } });
+      if (before.clinicalEventId) await tx.clinicalEvent.deleteMany({ where: { id: before.clinicalEventId } });
+      if (before.printableDocumentId) await tx.printableDocument.deleteMany({ where: { id: before.printableDocumentId } });
+    });
+    await this.audit.record({ actorId: actor.sub, action: AuditAction.DELETE, entity: 'Prescription', entityId: id, ipAddress, before, after: { permanentlyDeleted: true, reason: dto.reason } });
+    return { success: true };
   }
 
   async createLabOrderExternal(dto: CreateLabOrderExternalDto, actor: CurrentUser, ipAddress?: string) {
@@ -294,6 +314,14 @@ export class ClinicalDocumentsService {
     return order;
   }
 
+  listLabOrdersExternal(medicalRecordId?: string) {
+    return this.prisma.labOrderExternal.findMany({
+      where: medicalRecordId ? { medicalRecordId } : undefined,
+      include: this.labOrderInclude(),
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
   async voidLabOrderExternal(id: string, dto: SafeDeleteDto, actor: CurrentUser, ipAddress?: string) {
     const before = await this.getLabOrderExternal(id);
     const order = await this.prisma.labOrderExternal.update({
@@ -303,6 +331,18 @@ export class ClinicalDocumentsService {
     });
     await this.audit.record({ actorId: actor.sub, action: AuditAction.DELETE, entity: 'LabOrderExternal', entityId: id, ipAddress, before, after: { order, reason: dto.reason } });
     return order;
+  }
+
+  async deleteLabOrderExternal(id: string, dto: SafeDeleteDto, actor: CurrentUser, ipAddress?: string) {
+    const before = await this.prisma.labOrderExternal.findUnique({ where: { id }, include: this.labOrderInclude() });
+    if (!before) throw new NotFoundException('Orden de laboratorio no encontrada');
+    await this.prisma.$transaction(async (tx) => {
+      await tx.labOrderExternal.delete({ where: { id } });
+      if (before.clinicalEventId) await tx.clinicalEvent.deleteMany({ where: { id: before.clinicalEventId } });
+      if (before.printableDocumentId) await tx.printableDocument.deleteMany({ where: { id: before.printableDocumentId } });
+    });
+    await this.audit.record({ actorId: actor.sub, action: AuditAction.DELETE, entity: 'LabOrderExternal', entityId: id, ipAddress, before, after: { permanentlyDeleted: true, reason: dto.reason } });
+    return { success: true };
   }
 
   async createImagingOrder(dto: CreateImagingOrderDto, actor: CurrentUser, ipAddress?: string) {
@@ -317,7 +357,6 @@ export class ClinicalDocumentsService {
         medicalRecordId: dto.medicalRecordId,
         studyType: dto.studyType,
         imagingType: dto.imagingType,
-        anatomyRegion: dto.anatomyRegion,
         clinicalReason: dto.clinicalReason,
         reason: dto.clinicalReason,
         presumptiveDiagnosis: dto.presumptiveDiagnosis,
@@ -334,7 +373,7 @@ export class ClinicalDocumentsService {
       doctorId,
       type: 'IMAGING_ORDER',
       title: `Orden de imagen ${orderNumber}`,
-      summary: [dto.imagingType, dto.studyType, dto.anatomyRegion].filter(Boolean).join(' · '),
+      summary: [dto.imagingType, dto.studyType].filter(Boolean).join(' · '),
       module: 'Expediente',
       entity: 'ImagingOrder',
       entityId: order.id,
@@ -352,6 +391,14 @@ export class ClinicalDocumentsService {
     return order;
   }
 
+  listImagingOrders(medicalRecordId?: string) {
+    return this.prisma.imagingOrder.findMany({
+      where: medicalRecordId ? { medicalRecordId } : undefined,
+      include: this.imagingInclude(),
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
   async voidImagingOrder(id: string, dto: SafeDeleteDto, actor: CurrentUser, ipAddress?: string) {
     const before = await this.getImagingOrder(id);
     const order = await this.prisma.imagingOrder.update({
@@ -361,6 +408,18 @@ export class ClinicalDocumentsService {
     });
     await this.audit.record({ actorId: actor.sub, action: AuditAction.DELETE, entity: 'ImagingOrder', entityId: id, ipAddress, before, after: { order, reason: dto.reason } });
     return order;
+  }
+
+  async deleteImagingOrder(id: string, dto: SafeDeleteDto, actor: CurrentUser, ipAddress?: string) {
+    const before = await this.prisma.imagingOrder.findUnique({ where: { id }, include: this.imagingInclude() });
+    if (!before) throw new NotFoundException('Orden de imagen no encontrada');
+    await this.prisma.$transaction(async (tx) => {
+      await tx.imagingOrder.delete({ where: { id } });
+      if (before.clinicalEventId) await tx.clinicalEvent.deleteMany({ where: { id: before.clinicalEventId } });
+      if (before.printableDocumentId) await tx.printableDocument.deleteMany({ where: { id: before.printableDocumentId } });
+    });
+    await this.audit.record({ actorId: actor.sub, action: AuditAction.DELETE, entity: 'ImagingOrder', entityId: id, ipAddress, before, after: { permanentlyDeleted: true, reason: dto.reason } });
+    return { success: true };
   }
 
   async createCertificate(dto: CreateCertificateDto, actor: CurrentUser, ipAddress?: string) {
@@ -481,8 +540,14 @@ export class ClinicalDocumentsService {
   }
 
   private header(doc: PDFKit.PDFDocument, settings: Awaited<ReturnType<ClinicalDocumentsService['settings']>>, _doctor: unknown) {
-    const logo = this.logoPath(settings.printLogoUrl ?? settings.logoUrl);
-    if (logo) doc.image(logo, 48, 38, { width: 54, height: 54 });
+    const logo = this.assetPath(settings.printLogoUrl ?? settings.logoUrl, true);
+    if (logo) {
+      try {
+        doc.image(logo, 48, 38, { width: 54, height: 54, fit: [54, 54] });
+      } catch {
+        // Un logo incompatible nunca debe impedir la generación del documento.
+      }
+    }
     doc.fillColor(settings.primaryColor ?? '#1f2f66').fontSize(18).text(settings.clinicName, 112, 42);
     doc.fillColor('#334155').fontSize(9).text(settings.address, 112, 66, { width: 390 });
     doc.text(`Tel: ${settings.phoneMain} | Estética: ${settings.phoneAesthetic ?? '-'} | WhatsApp: ${settings.whatsapp ?? '-'}`, 112, 84);
@@ -515,7 +580,6 @@ export class ClinicalDocumentsService {
     doc.fillColor('#1f2f66').fontSize(15).text(`Orden de imagen ${order.orderNumber ?? ''}`);
     doc.fontSize(11).fillColor('#111827').text(`Tipo: ${order.imagingType ?? order.studyType}`);
     doc.text(`Estudio solicitado: ${order.studyType}`);
-    doc.text(`Región anatómica: ${order.anatomyRegion ?? '-'}`);
     doc.text(`Motivo clínico: ${order.clinicalReason ?? order.reason ?? '-'}`);
     doc.text(`Diagnóstico presuntivo: ${order.presumptiveDiagnosis ?? '-'}`);
     if (order.observations) doc.text(`Observaciones: ${order.observations}`);
@@ -540,19 +604,41 @@ export class ClinicalDocumentsService {
 
   private footer(doc: PDFKit.PDFDocument, doctor?: any) {
     doc.moveDown(3).fontSize(10).fillColor('#111827');
+    const signature = this.assetPath(doctor?.signatureUrl);
+    if (signature) {
+      try {
+        doc.image(signature, doc.page.width / 2 - 65, doc.y, { fit: [130, 50], align: 'center' });
+        doc.moveDown(4);
+      } catch {
+        // La firma es opcional; el PDF continúa aunque el archivo esté dañado.
+      }
+    }
     doc.text('__________________________________', { align: 'center' });
     doc.text(doctor?.fullName ?? 'Médico tratante', { align: 'center' });
     doc.text(`Código MINSA: ${doctor?.minsaCode ?? '-'}`, { align: 'center' });
     doc.moveDown().fontSize(8).fillColor('#64748b').text('Esta receta fue emitida electrónicamente por Clínica Keyser.', { align: 'center' });
   }
 
-  private logoPath(url?: string | null) {
-    if (!url) return undefined;
-    const relative = url.startsWith('/') ? url.slice(1) : url;
-    const candidates = [
-      join(process.cwd(), 'apps/web/public', relative),
-      join(process.cwd(), relative),
-    ];
+  private assetPath(url?: string | null, includeDefaultLogo = false) {
+    const root = this.config.get<string>('LOCAL_STORAGE_ROOT') ?? './storage';
+    const candidates: string[] = [];
+    if (url) {
+      try {
+        const parsed = new URL(url, 'https://clinicakeyser.local');
+        const key = parsed.searchParams.get('key');
+        if (key) candidates.push(normalize(join(root, key)));
+      } catch {
+        // Se intentarán las rutas locales alternativas.
+      }
+      const relative = url.startsWith('/') ? url.slice(1) : url;
+      candidates.push(join(process.cwd(), 'apps/web/public', relative));
+      candidates.push(join(process.cwd(), relative));
+    }
+    if (includeDefaultLogo) {
+      candidates.push(join(process.cwd(), 'assets', 'clinica-keyser-logo.jpg'));
+      candidates.push(join(process.cwd(), 'apps/api/assets', 'clinica-keyser-logo.jpg'));
+      candidates.push(join(process.cwd(), 'apps/web/public', 'clinica-keyser-logo.jpg'));
+    }
     return candidates.find((path) => existsSync(path));
   }
 

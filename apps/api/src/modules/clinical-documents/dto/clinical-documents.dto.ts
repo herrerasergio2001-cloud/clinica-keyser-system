@@ -1,6 +1,5 @@
 import { Type } from 'class-transformer';
-import { IsArray, IsBoolean, IsEmail, IsEnum, IsInt, IsOptional, IsString, Min, ValidateNested } from 'class-validator';
-import { RoleName } from '@prisma/client';
+import { IsArray, IsBoolean, IsEmail, IsInt, IsOptional, IsString, Min, ValidateNested } from 'class-validator';
 
 export class UpdateDoctorProfileDto {
   @IsOptional()
@@ -196,10 +195,6 @@ export class CreateImagingOrderDto {
   @IsOptional()
   @IsString()
   imagingType?: string;
-
-  @IsOptional()
-  @IsString()
-  anatomyRegion?: string;
 
   @IsOptional()
   @IsString()

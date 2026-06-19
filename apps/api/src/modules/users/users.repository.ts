@@ -24,7 +24,8 @@ export class UsersRepository {
 
   async create(data: Omit<Prisma.UserCreateInput, 'role'> & { role: RoleName }) {
     const role = await this.prisma.role.findUniqueOrThrow({ where: { name: data.role } });
-    const { role: _role, ...userData } = data;
+    const { role: roleName, ...userData } = data;
+    void roleName;
     return this.prisma.user.create({
       data: { ...userData, role: { connect: { id: role.id } } },
       include: { role: true, doctorProfile: true },

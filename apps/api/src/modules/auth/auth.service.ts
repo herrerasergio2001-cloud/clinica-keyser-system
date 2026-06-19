@@ -60,10 +60,18 @@ export class AuthService {
 
   async refresh(refreshToken: string, ipAddress?: string, userAgent?: string) {
     const payload = await this.verifyRefreshToken(refreshToken);
-    const session = await this.prisma.session.findFirst({ where: { userId: payload.sub, revokedAt: null } });
-    if (!session || !(await bcrypt.compare(refreshToken, session.refreshTokenHash))) {
-      throw new UnauthorizedException('Invalid refresh token');
+    const sessions = await this.prisma.session.findMany({
+      where: { userId: payload.sub, revokedAt: null, expiresAt: { gt: new Date() } },
+      orderBy: { createdAt: 'desc' },
+    });
+    let session = null;
+    for (const candidate of sessions) {
+      if (await bcrypt.compare(refreshToken, candidate.refreshTokenHash)) {
+        session = candidate;
+        break;
+      }
     }
+    if (!session) throw new UnauthorizedException('Invalid refresh token');
 
     const user = await this.users.findById(payload.sub);
     if (!user || !user.isActive) throw new UnauthorizedException('Invalid refresh token');

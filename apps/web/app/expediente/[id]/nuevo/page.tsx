@@ -1,7 +1,5 @@
-"use client";
-
-import { ExpedienteEditor } from '../../_components/expediente-editor';
+import { SimplifiedClinicalRecord } from '../../_components/simplified-record';
 
 export default function NewClinicalHistoryPage({ params }: { params: { id: string } }) {
-  return <ExpedienteEditor patientId={params.id} mode="new" />;
+  return <SimplifiedClinicalRecord patientId={params.id} startNew />;
 }

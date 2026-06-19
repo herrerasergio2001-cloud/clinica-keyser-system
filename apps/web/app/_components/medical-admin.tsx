@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { FormEvent, ReactNode, useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, Download, FileText, ImageUp, Loader2, Plus, Power, Printer, Save, Settings, Stethoscope, Trash2, UserRound, UsersRound } from 'lucide-react';
+import { authenticatedFetch } from './api-client';
 import { AppSidebar, ProtectedModule, UserMenu, canAccess } from './session';
 
 const apiBase = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
@@ -165,7 +166,7 @@ export function UsersPage({ mode, userId }: { mode?: 'new' | 'edit'; userId?: st
   }
 
   async function deleteUser(user: Doctor) {
-    if (!window.confirm(`¿Eliminar definitivamente a ${user.fullName}? Si tiene historial clínico asociado, el sistema impedirá la eliminación.`)) return;
+    if (!window.confirm(`¿Eliminar definitivamente a ${user.fullName}? El historial asociado se conservará y se reasignará al SUPER_ADMIN que realiza la acción.`)) return;
     const reason = window.prompt('Motivo de eliminación:');
     if (!reason?.trim()) {
       setError('Debe ingresar un motivo.');
@@ -199,7 +200,7 @@ export function UsersPage({ mode, userId }: { mode?: 'new' | 'edit'; userId?: st
               <Input label="Contraseña" type="password" value={form.password} onChange={(value) => setForm({ ...form, password: value })} required={!userId} />
               <label className="grid gap-1 text-sm font-medium">Rol
                 <select value={form.role} onChange={(event) => setForm({ ...form, role: event.target.value })} className="h-10 rounded-md border border-slate-200 bg-white px-3 dark:border-slate-700 dark:bg-slate-950">
-                  <option value="SUPER_ADMIN">SUPER_ADMIN</option><option value="DOCTOR">MÉDICO</option><option value="RECEPTION">RECEPCIÓN</option><option value="LABORATORY">LABORATORIO</option><option value="PHARMACY">FARMACIA</option><option value="ADMIN">ADMINISTRACIÓN</option>
+                  <option value="SUPER_ADMIN">SUPER_ADMIN</option><option value="DOCTOR">MÉDICO EVENTUAL</option><option value="RECEPTION">RECEPCIÓN</option><option value="LABORATORY">LABORATORIO</option><option value="PHARMACY">FARMACIA</option>
                 </select>
               </label>
               <label className="flex items-center gap-2 text-sm font-medium"><input type="checkbox" checked={form.isActive} onChange={(event) => setForm({ ...form, isActive: event.target.checked })} />Usuario activo</label>
@@ -357,7 +358,7 @@ export function DocumentFormPage({ kind, initialPatientId }: { kind: 'prescripti
   const [saved, setSaved] = useState<any>(null);
   const [form, setForm] = useState<any>({
     diagnosis: '', recommendationsGeneral: '', medicationName: 'Losartán', concentration: '50 mg', presentation: 'Tableta', dose: '1 tableta', route: 'Vía oral', frequency: 'Cada 12 horas', duration: '30 días', instructions: '',
-    exams: ['Hematología', 'Bioquímica'], customExam: '', studyType: 'Ultrasonido', imagingType: 'Ultrasonido', anatomyRegion: '', clinicalReason: '', presumptiveDiagnosis: '', observations: '', documentType: 'CERTIFICATE', title: 'Certificado médico', content: '',
+    exams: ['Hematología', 'Bioquímica'], customExam: '', studyType: 'Ultrasonido', imagingType: 'Ultrasonido', clinicalReason: '', presumptiveDiagnosis: '', observations: '', documentType: 'CERTIFICATE', title: 'Certificado médico', content: '',
   });
   useEffect(() => {
     const preferredPatient = initialPatientId && patients.some((p) => p.id === initialPatientId) ? initialPatientId : patients[0]?.id;
@@ -384,7 +385,7 @@ export function DocumentFormPage({ kind, initialPatientId }: { kind: 'prescripti
       : kind === 'lab'
         ? { ...common, diagnosis: form.diagnosis, reason: form.clinicalReason, observations: form.observations, exams: [...form.exams, form.customExam].filter(Boolean) }
         : kind === 'image'
-          ? { ...common, studyType: form.studyType, imagingType: form.imagingType, anatomyRegion: form.anatomyRegion, clinicalReason: form.clinicalReason, presumptiveDiagnosis: form.presumptiveDiagnosis, observations: form.observations }
+          ? { ...common, studyType: form.studyType, imagingType: form.imagingType, clinicalReason: form.clinicalReason, presumptiveDiagnosis: form.presumptiveDiagnosis, observations: form.observations }
           : { ...common, documentType: form.documentType, title: form.title, content: form.content, diagnosis: form.diagnosis };
     const endpoint = kind === 'prescription' ? '/api/prescriptions' : kind === 'lab' ? '/api/lab-orders-external' : kind === 'image' ? '/api/imaging-orders' : '/api/documents/certificates';
     try {
@@ -420,12 +421,29 @@ export function DocumentFormPage({ kind, initialPatientId }: { kind: 'prescripti
 
 function PrescriptionFields({ form, setForm }: any) { return <><Input label="Diagnóstico" value={form.diagnosis} onChange={(v) => setForm({ ...form, diagnosis: v })} /><Input label="Medicamento" value={form.medicationName} onChange={(v) => setForm({ ...form, medicationName: v })} /><Input label="Concentración" value={form.concentration} onChange={(v) => setForm({ ...form, concentration: v })} /><Input label="Presentación" value={form.presentation} onChange={(v) => setForm({ ...form, presentation: v })} /><Input label="Dosis" value={form.dose} onChange={(v) => setForm({ ...form, dose: v })} /><Input label="Vía" value={form.route} onChange={(v) => setForm({ ...form, route: v })} /><Input label="Frecuencia" value={form.frequency} onChange={(v) => setForm({ ...form, frequency: v })} /><Input label="Duración" value={form.duration} onChange={(v) => setForm({ ...form, duration: v })} /><TextArea label="Indicaciones" value={form.instructions} onChange={(v) => setForm({ ...form, instructions: v })} /><TextArea label="Recomendaciones" value={form.recommendationsGeneral} onChange={(v) => setForm({ ...form, recommendationsGeneral: v })} /></>; }
 function LabFields({ form, setForm }: any) { const exams = ['Hematología', 'Bioquímica', 'Uroanálisis', 'Coprología', 'Perfil lipídico', 'Perfil hepático', 'Perfil renal', 'TSH/T4 libre', 'Vitaminas']; return <><TextArea label="Motivo / diagnóstico" value={form.clinicalReason} onChange={(v) => setForm({ ...form, clinicalReason: v })} /><div className="grid gap-2 md:col-span-2">{exams.map((exam) => <label key={exam} className="flex items-center gap-2 text-sm"><input type="checkbox" checked={form.exams.includes(exam)} onChange={(e) => setForm({ ...form, exams: e.target.checked ? [...form.exams, exam] : form.exams.filter((x: string) => x !== exam) })} />{exam}</label>)}</div><Input label="Otro examen" value={form.customExam} onChange={(v) => setForm({ ...form, customExam: v })} /><TextArea label="Observaciones" value={form.observations} onChange={(v) => setForm({ ...form, observations: v })} /></>; }
-function ImageFields({ form, setForm }: any) { return <><Select label="Tipo" value={form.imagingType} onChange={(v) => setForm({ ...form, imagingType: v })} options={['Ultrasonido', 'Rayos X', 'TAC', 'Resonancia', 'Doppler', 'Otro'].map((x) => [x, x])} /><Input label="Estudio solicitado" value={form.studyType} onChange={(v) => setForm({ ...form, studyType: v })} /><Input label="Región anatómica" value={form.anatomyRegion} onChange={(v) => setForm({ ...form, anatomyRegion: v })} /><Input label="Diagnóstico presuntivo" value={form.presumptiveDiagnosis} onChange={(v) => setForm({ ...form, presumptiveDiagnosis: v })} /><TextArea label="Motivo clínico" value={form.clinicalReason} onChange={(v) => setForm({ ...form, clinicalReason: v })} /><TextArea label="Observaciones" value={form.observations} onChange={(v) => setForm({ ...form, observations: v })} /></>; }
+function ImageFields({ form, setForm }: any) { return <><Select label="Tipo" value={form.imagingType} onChange={(v) => setForm({ ...form, imagingType: v })} options={['Ultrasonido', 'Rayos X', 'TAC', 'Resonancia', 'Doppler', 'Otro'].map((x) => [x, x])} /><Input label="Estudio solicitado" value={form.studyType} onChange={(v) => setForm({ ...form, studyType: v })} /><Input label="Diagnóstico presuntivo" value={form.presumptiveDiagnosis} onChange={(v) => setForm({ ...form, presumptiveDiagnosis: v })} /><TextArea label="Motivo clínico" value={form.clinicalReason} onChange={(v) => setForm({ ...form, clinicalReason: v })} /><TextArea label="Observaciones" value={form.observations} onChange={(v) => setForm({ ...form, observations: v })} /></>; }
 function CertificateFields({ form, setForm }: any) { return <><Select label="Tipo documento" value={form.documentType} onChange={(v) => setForm({ ...form, documentType: v })} options={[['CERTIFICATE', 'Certificado médico'], ['CONSTANCIA', 'Constancia médica'], ['INCAPACIDAD', 'Incapacidad'], ['INFORME', 'Informe médico'], ['REFERENCIA', 'Referencia médica']]} /><Input label="Título" value={form.title} onChange={(v) => setForm({ ...form, title: v })} /><Input label="Diagnóstico" value={form.diagnosis} onChange={(v) => setForm({ ...form, diagnosis: v })} /><TextArea label="Texto editable" value={form.content} onChange={(v) => setForm({ ...form, content: v })} /></>; }
 
 function PrintPreview({ settings, patient, doctor, kind, form, pdfPath }: any) {
   const profile = doctor?.doctorProfile;
-  return <aside className="rounded-lg border bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900"><div className="printable rounded-md border bg-white p-5 text-slate-950"><div className="flex items-center gap-4 border-b pb-3">{settings?.logoUrl && <img src={settings.logoUrl} alt="Logo" className="h-16 w-16 rounded object-contain" />}<div><h2 className="text-xl font-semibold" style={{ color: settings?.primaryColor }}>{settings?.clinicName ?? 'Clínica Keyser'}</h2><p className="text-xs">{settings?.address}</p><p className="text-xs">Tel. {settings?.phoneMain} · Estética {settings?.phoneAesthetic}</p></div></div><div className="mt-4 text-sm"><p><strong>Médico:</strong> {profile?.fullName ?? doctor?.fullName} · MINSA {profile?.minsaCode ?? '-'}</p><p><strong>Especialidad:</strong> {profile?.specialty ?? '-'}</p><p><strong>Paciente:</strong> {patient?.fullName ?? '-'} · {patient?.patientCode ?? '-'}</p></div><div className="mt-5"><h3 className="font-semibold">{kind === 'prescription' ? 'Receta médica' : kind === 'lab' ? 'Orden de laboratorio' : kind === 'image' ? 'Orden de imagen' : form.title}</h3><p className="mt-2 whitespace-pre-wrap text-sm">{kind === 'prescription' ? `${form.medicationName} ${form.concentration}\n${form.dose} ${form.route} ${form.frequency} por ${form.duration}\n${form.instructions}` : kind === 'lab' ? `Exámenes: ${[...form.exams, form.customExam].filter(Boolean).join(', ')}\nMotivo: ${form.clinicalReason}` : kind === 'image' ? `${form.imagingType}: ${form.studyType}\nRegión: ${form.anatomyRegion}\nMotivo: ${form.clinicalReason}` : form.content}</p></div><div className="mt-10 text-center text-xs"><p>__________________________________</p><p>{profile?.fullName ?? doctor?.fullName ?? 'Médico tratante'}</p><p>Código MINSA: {profile?.minsaCode ?? '-'}</p><p className="mt-3 text-slate-500">Esta receta fue emitida electrónicamente por Clínica Keyser.</p></div></div><div className="mt-4 flex flex-wrap gap-2"><button onClick={() => window.print()} className="inline-flex h-10 items-center gap-2 rounded-md border px-3 text-sm"><Printer className="h-4 w-4" />Imprimir</button>{pdfPath && <a href={`${apiBase}${pdfPath}`} target="_blank" className="inline-flex h-10 items-center gap-2 rounded-md bg-clinic-teal px-3 text-sm font-semibold text-white"><Download className="h-4 w-4" />Exportar PDF</a>}</div></aside>;
+  const title = kind === 'prescription' ? 'Receta médica' : kind === 'lab' ? 'Orden de laboratorio' : kind === 'image' ? 'Orden de imagen' : form.title;
+  const pdfName = `${String(title || 'documento').toLowerCase().replaceAll(' ', '-')}.pdf`;
+  return <aside className="rounded-lg border bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900"><h2 className="mb-3 font-semibold">Vista previa</h2><div id="document-preview" className="printable rounded-md border bg-white p-5 text-slate-950"><div className="flex items-center gap-4 border-b pb-3">{settings?.logoUrl && <img src={settings.logoUrl} alt="Logo" className="h-16 w-16 rounded object-contain" />}<div><h2 className="text-xl font-semibold" style={{ color: settings?.primaryColor }}>{settings?.clinicName ?? 'Clínica Keyser'}</h2><p className="text-xs">{settings?.address}</p><p className="text-xs">Tel. {settings?.phoneMain} · Estética {settings?.phoneAesthetic}</p></div></div><div className="mt-4 text-sm"><p><strong>Fecha y hora:</strong> {new Date().toLocaleString('es-NI')}</p><p><strong>Médico:</strong> {profile?.fullName ?? doctor?.fullName} · MINSA {profile?.minsaCode ?? '-'}</p><p><strong>Especialidad:</strong> {profile?.specialty ?? '-'}</p><p><strong>Paciente:</strong> {patient?.fullName ?? '-'} · {patient?.patientCode ?? '-'}</p></div><div className="mt-5"><h3 className="font-semibold">{title}</h3><p className="mt-2 whitespace-pre-wrap text-sm">{kind === 'prescription' ? `Diagnóstico: ${form.diagnosis || '-'}\n\n${form.medicationName} ${form.concentration}\n${form.dose} ${form.route} ${form.frequency} por ${form.duration}\n${form.instructions}\n\n${form.recommendationsGeneral || ''}` : kind === 'lab' ? `Exámenes: ${[...form.exams, form.customExam].filter(Boolean).join(', ')}\nMotivo: ${form.clinicalReason}` : kind === 'image' ? `${form.imagingType}: ${form.studyType}\nDiagnóstico presuntivo: ${form.presumptiveDiagnosis || '-'}\nMotivo: ${form.clinicalReason}` : form.content}</p></div><div className="mt-10 text-center text-xs"><p>__________________________________</p><p>{profile?.fullName ?? doctor?.fullName ?? 'Médico tratante'}</p><p>Código MINSA: {profile?.minsaCode ?? '-'}</p><p className="mt-3 text-slate-500">Documento emitido electrónicamente por Clínica Keyser.</p></div></div><div className="mt-4 flex flex-wrap gap-2"><button type="button" onClick={() => document.getElementById('document-preview')?.scrollIntoView({ behavior: 'smooth' })} className="inline-flex h-10 items-center gap-2 rounded-md border px-3 text-sm"><FileText className="h-4 w-4" />Vista previa</button><button type="button" onClick={() => window.print()} className="inline-flex h-10 items-center gap-2 rounded-md border px-3 text-sm"><Printer className="h-4 w-4" />Imprimir</button>{pdfPath && <button type="button" onClick={() => void downloadProtectedPdf(pdfPath, pdfName)} className="inline-flex h-10 items-center gap-2 rounded-md bg-clinic-teal px-3 text-sm font-semibold text-white"><Download className="h-4 w-4" />Descargar PDF</button>}</div></aside>;
+}
+
+async function downloadProtectedPdf(path: string, fileName: string) {
+  const response = await authenticatedFetch(path);
+  if (!response.ok) {
+    const detail = await response.text().catch(() => '');
+    window.alert(detail || 'No se pudo generar el PDF.');
+    return;
+  }
+  const url = URL.createObjectURL(await response.blob());
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = fileName;
+  link.click();
+  window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
 
 export function PatientPrintPage({ patientId }: { patientId: string }) {
@@ -470,12 +488,24 @@ export function PrescriptionDetailPage({ id }: { id: string }) {
       setError(err instanceof Error ? err.message : 'No se pudo anular la receta');
     }
   }
+  async function deletePrescription() {
+    if (!window.confirm('¿Eliminar definitivamente esta receta? Esta acción no se puede deshacer.')) return;
+    const reason = window.prompt('Motivo de eliminación definitiva:');
+    if (!reason?.trim()) return;
+    try {
+      await api(`/api/prescriptions/${id}`, { method: 'DELETE', headers: authHeaders(true), body: JSON.stringify({ reason }) });
+      router.replace('/panel');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo eliminar la receta');
+    }
+  }
   return (
     <AdminShell title="Receta médica" subtitle="Vista previa e impresión de receta guardada">
       {loadingBase || (!prescription && !error) ? <Loading /> : error ? <p>{error}</p> : (
         <div className="space-y-3">
           <PrintPreview settings={settings} patient={prescription.patient} doctor={prescription.doctor} kind="prescription" form={form} pdfPath={`/api/prescriptions/${id}/pdf`} />
           {['SUPER_ADMIN', 'DOCTOR'].includes(currentRole()) && <button onClick={() => void voidPrescription()} className="rounded-md border border-red-200 px-4 py-2 text-sm font-semibold text-red-700">Anular receta con motivo</button>}
+          {currentRole() === 'SUPER_ADMIN' && <button onClick={() => void deletePrescription()} className="ml-2 rounded-md bg-red-700 px-4 py-2 text-sm font-semibold text-white"><Trash2 className="mr-1 inline h-4 w-4" />Eliminar definitivamente</button>}
         </div>
       )}
     </AdminShell>

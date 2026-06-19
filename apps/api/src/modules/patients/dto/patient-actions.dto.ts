@@ -46,28 +46,6 @@ export class CreatePatientAppointmentDto {
   status?: string;
 }
 
-export class CreatePatientEvolutionDto {
-  @IsOptional()
-  @IsString()
-  medicalRecordId?: string;
-
-  @IsOptional()
-  @IsString()
-  subjective?: string;
-
-  @IsOptional()
-  @IsString()
-  objective?: string;
-
-  @IsOptional()
-  @IsString()
-  assessment?: string;
-
-  @IsOptional()
-  @IsString()
-  plan?: string;
-}
-
 export class UploadPatientAttachmentDto {
   @IsOptional()
   @IsString()

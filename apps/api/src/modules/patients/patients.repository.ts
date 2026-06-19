@@ -229,19 +229,4 @@ export class PatientsRepository {
     return this.prisma.appointment.create({ data: { ...data, patient: { connect: { id: patientId } } } });
   }
 
-  listEvolutions(patientId: string) {
-    return this.prisma.evolutionNote.findMany({
-      where: { patientId },
-      include: { doctor: { select: { id: true, fullName: true } }, medicalRecord: { select: { id: true, recordNumber: true } } },
-      orderBy: { noteDate: 'desc' },
-    });
-  }
-
-  latestMedicalRecord(patientId: string) {
-    return this.prisma.medicalRecord.findFirst({ where: { patientId }, orderBy: { consultationDate: 'desc' } });
-  }
-
-  createEvolution(data: Prisma.EvolutionNoteCreateInput) {
-    return this.prisma.evolutionNote.create({ data });
-  }
 }

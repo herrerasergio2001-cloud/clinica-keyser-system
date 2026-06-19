@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Header, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Header, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { CurrentUser } from '../../shared/decorators/current-user.decorator';
 import { Permissions } from '../../shared/decorators/permissions.decorator';
@@ -45,6 +45,13 @@ export class LaboratoryController {
   @Permissions('*')
   cancelOrder(@Param('id') id: string, @Body() dto: SafeDeleteDto, @CurrentUser() user: CurrentUser) {
     return this.laboratory.cancelOrder(id, dto, user);
+  }
+
+  @Delete('orders/:id')
+  @Roles('SUPER_ADMIN')
+  @Permissions('*')
+  deleteOrder(@Param('id') id: string, @Body() dto: SafeDeleteDto, @CurrentUser() user: CurrentUser) {
+    return this.laboratory.deleteOrder(id, dto, user);
   }
 
   @Get('templates')

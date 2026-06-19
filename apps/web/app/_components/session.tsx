@@ -19,6 +19,7 @@ import {
   UserCog,
   UsersRound,
 } from 'lucide-react';
+import { apiBase, ensureAuthenticatedSession } from './api-client';
 
 export type UserRole = 'SUPER_ADMIN' | 'ADMIN' | 'DOCTOR' | 'ASSISTANT' | 'RECEPTION' | 'CASHIER' | 'PHARMACY' | 'LABORATORY' | 'ACCOUNTING';
 
@@ -31,12 +32,10 @@ export type SessionUser = {
   minsaCode?: string;
 };
 
-const apiBase = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
-
 export const roleLabels: Record<string, string> = {
   SUPER_ADMIN: 'SUPER_ADMIN',
   ADMIN: 'ADMINISTRACIÓN',
-  DOCTOR: 'MÉDICO',
+  DOCTOR: 'MÉDICO EVENTUAL',
   ASSISTANT: 'ASISTENTE',
   RECEPTION: 'RECEPCIÓN',
   CASHIER: 'CAJA',
@@ -135,13 +134,20 @@ export function ProtectedModule({ module, children }: { module: string; children
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    const session = decodeSession();
-    if (!session) {
-      router.replace(`/login?next=${encodeURIComponent(window.location.pathname)}`);
-      return;
-    }
-    setUser(session);
-    setReady(true);
+    let active = true;
+    void ensureAuthenticatedSession().then((authenticated) => {
+      if (!active) return;
+      const session = authenticated ? decodeSession() : null;
+      if (!session) {
+        router.replace(`/login?next=${encodeURIComponent(window.location.pathname)}`);
+        return;
+      }
+      setUser(session);
+      setReady(true);
+    });
+    return () => {
+      active = false;
+    };
   }, [router]);
 
   if (!ready) return <main className="min-h-screen bg-slate-50 p-6 text-sm text-slate-500">Cargando accesos...</main>;

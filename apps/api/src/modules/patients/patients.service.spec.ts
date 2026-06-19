@@ -7,7 +7,13 @@ describe('PatientsService', () => {
       nextPatientCode: jest.fn().mockResolvedValue('CK-000008'),
       create: jest.fn().mockImplementation((data) => Promise.resolve({ id: 'p1', ...data })),
     };
-    const service = new PatientsService(repository as never, { record: jest.fn() } as never, { get: jest.fn() } as never, {} as never);
+    const service = new PatientsService(
+      repository as never,
+      { record: jest.fn() } as never,
+      { get: jest.fn() } as never,
+      {} as never,
+      {} as never,
+    );
 
     const patient = await service.create({
       fullName: 'Test Patient',

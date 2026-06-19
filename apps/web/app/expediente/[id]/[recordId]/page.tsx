@@ -1,7 +1,5 @@
-"use client";
-
-import { ExpedienteEditor } from '../../_components/expediente-editor';
+import { SimplifiedClinicalRecord } from '../../_components/simplified-record';
 
 export default function MedicalRecordDetail({ params }: { params: { id: string; recordId: string } }) {
-  return <ExpedienteEditor patientId={params.id} recordId={params.recordId} mode="edit" />;
+  return <SimplifiedClinicalRecord patientId={params.id} recordId={params.recordId} />;
 }

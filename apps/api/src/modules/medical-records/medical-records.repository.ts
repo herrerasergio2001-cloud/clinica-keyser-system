@@ -14,11 +14,27 @@ export const medicalRecordInclude = {
   attachments: { where: { isDeleted: false }, orderBy: { createdAt: 'desc' as const }, include: { uploadedBy: { select: { id: true, fullName: true } } } },
   vaccineRecords: { orderBy: { createdAt: 'desc' as const } },
   pregnancyControls: { orderBy: { createdAt: 'desc' as const } },
-  bodyMapFindings: { orderBy: { createdAt: 'desc' as const } },
   dentalFindings: { orderBy: { createdAt: 'desc' as const } },
   labOrders: { orderBy: { createdAt: 'desc' as const } },
   imagingOrders: { orderBy: { createdAt: 'desc' as const } },
   clinicalDocuments: { orderBy: { createdAt: 'desc' as const } },
+  clinicalProcedures: {
+    where: { status: 'ACTIVE' as const },
+    orderBy: { performedAt: 'desc' as const },
+    include: {
+      doctor: { select: { id: true, fullName: true } },
+      patient: { select: { id: true, fullName: true, patientCode: true, birthDate: true, gender: true } },
+      attachments: { orderBy: { createdAt: 'desc' as const } },
+    },
+  },
+  diagnosticStudies: {
+    where: { status: 'ACTIVE' as const },
+    orderBy: { studyDate: 'desc' as const },
+    include: {
+      doctor: { select: { id: true, fullName: true } },
+      attachments: { orderBy: { createdAt: 'desc' as const } },
+    },
+  },
 };
 
 @Injectable()
@@ -94,6 +110,14 @@ export class MedicalRecordsRepository {
     });
   }
 
+  listAllEvolutionNotes(medicalRecordId: string) {
+    return this.prisma.evolutionNote.findMany({
+      where: { medicalRecordId },
+      orderBy: { noteDate: 'desc' },
+      include: { doctor: { select: { id: true, fullName: true } }, medicalRecord: { include: { patient: true } } },
+    });
+  }
+
   findEvolutionNote(id: string) {
     return this.prisma.evolutionNote.findUnique({
       where: { id },
@@ -107,6 +131,99 @@ export class MedicalRecordsRepository {
       data,
       include: { doctor: { select: { id: true, fullName: true } }, medicalRecord: { include: { patient: true } } },
     });
+  }
+
+  listProcedures(medicalRecordId: string, includeArchived = false) {
+    return this.prisma.clinicalProcedure.findMany({
+      where: { medicalRecordId, status: includeArchived ? undefined : 'ACTIVE' },
+      include: {
+        doctor: { select: { id: true, fullName: true } },
+        patient: { select: { id: true, fullName: true, patientCode: true, birthDate: true, gender: true } },
+        attachments: { orderBy: { createdAt: 'desc' } },
+      },
+      orderBy: { performedAt: 'desc' },
+    });
+  }
+
+  findProcedure(id: string) {
+    return this.prisma.clinicalProcedure.findUnique({
+      where: { id },
+      include: {
+        doctor: { select: { id: true, fullName: true } },
+        patient: { select: { id: true, fullName: true, patientCode: true, birthDate: true, gender: true } },
+        attachments: { orderBy: { createdAt: 'desc' } },
+      },
+    });
+  }
+
+  createProcedure(data: Prisma.ClinicalProcedureCreateInput) {
+    return this.prisma.clinicalProcedure.create({
+      data,
+      include: {
+        doctor: { select: { id: true, fullName: true } },
+        patient: { select: { id: true, fullName: true, patientCode: true, birthDate: true, gender: true } },
+        attachments: true,
+      },
+    });
+  }
+
+  updateProcedure(id: string, data: Prisma.ClinicalProcedureUpdateInput) {
+    return this.prisma.clinicalProcedure.update({
+      where: { id },
+      data,
+      include: {
+        doctor: { select: { id: true, fullName: true } },
+        patient: { select: { id: true, fullName: true, patientCode: true, birthDate: true, gender: true } },
+        attachments: { orderBy: { createdAt: 'desc' } },
+      },
+    });
+  }
+
+  listStudies(medicalRecordId: string, includeArchived = false) {
+    return this.prisma.diagnosticStudy.findMany({
+      where: { medicalRecordId, status: includeArchived ? undefined : 'ACTIVE' },
+      include: {
+        doctor: { select: { id: true, fullName: true } },
+        attachments: { orderBy: { createdAt: 'desc' } },
+      },
+      orderBy: { studyDate: 'desc' },
+    });
+  }
+
+  findStudy(id: string) {
+    return this.prisma.diagnosticStudy.findUnique({
+      where: { id },
+      include: {
+        doctor: { select: { id: true, fullName: true } },
+        attachments: { orderBy: { createdAt: 'desc' } },
+      },
+    });
+  }
+
+  createStudy(data: Prisma.DiagnosticStudyCreateInput) {
+    return this.prisma.diagnosticStudy.create({
+      data,
+      include: { doctor: { select: { id: true, fullName: true } }, attachments: true },
+    });
+  }
+
+  updateStudy(id: string, data: Prisma.DiagnosticStudyUpdateInput) {
+    return this.prisma.diagnosticStudy.update({
+      where: { id },
+      data,
+      include: {
+        doctor: { select: { id: true, fullName: true } },
+        attachments: { orderBy: { createdAt: 'desc' } },
+      },
+    });
+  }
+
+  createClinicalEntryAttachment(data: Prisma.ClinicalEntryAttachmentCreateInput) {
+    return this.prisma.clinicalEntryAttachment.create({ data });
+  }
+
+  findClinicalEntryAttachment(id: string) {
+    return this.prisma.clinicalEntryAttachment.findUnique({ where: { id } });
   }
 
   deleteEvolutionNote(id: string) {
@@ -157,7 +274,6 @@ export class MedicalRecordsRepository {
 export type ClinicalResourceModel =
   | 'vaccineRecord'
   | 'pregnancyControl'
-  | 'bodyMapFinding'
   | 'dentalFinding'
   | 'labOrder'
   | 'imagingOrder'

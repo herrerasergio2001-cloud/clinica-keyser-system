@@ -1,9 +1,9 @@
-import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { AuditAction, FileOwnerType, MedicalRecordStatus, Prisma } from '@prisma/client';
+import { AuditAction, ClinicalEntryStatus, MedicalRecordStatus, RoleName } from '@prisma/client';
 import { createReadStream } from 'fs';
 import { join } from 'path';
-import PDFDocument from 'pdfkit';
+import PDFDocument = require('pdfkit');
 import { AuditService } from '../audit/audit.service';
 import { CurrentUser } from '../../shared/decorators/current-user.decorator';
 import { SafeDeleteDto } from '../../shared/dto/safe-delete.dto';
@@ -11,7 +11,6 @@ import { FileStorage } from '../../shared/storage/file-storage';
 import { CreateEvolutionNoteDto, UpdateEvolutionNoteDto } from './dto/create-evolution-note.dto';
 import { CreateMedicalAttachmentDto, UpdateMedicalAttachmentDto } from './dto/create-medical-attachment.dto';
 import {
-  CreateBodyMapFindingDto,
   CreateClinicalDocumentDto,
   CreateDentalFindingDto,
   CreateImagingOrderDto,
@@ -22,12 +21,15 @@ import {
 import {
   ClinicalHistoryDto,
   CreateMedicalRecordDto,
-  DiagnosisDto,
-  PhysicalExamDto,
-  PrescriptionDto,
   VitalSignsDto,
 } from './dto/create-medical-record.dto';
 import { UpdateMedicalRecordDto } from './dto/update-medical-record.dto';
+import {
+  CreateClinicalProcedureDto,
+  CreateDiagnosticStudyDto,
+  UpdateClinicalProcedureDto,
+  UpdateDiagnosticStudyDto,
+} from './dto/simplified-clinical-record.dto';
 import { MedicalRecordsRepository } from './medical-records.repository';
 
 type PdfKind = 'record' | 'prescription' | 'evolution';
@@ -109,6 +111,7 @@ export class MedicalRecordsService {
   }
 
   async update(id: string, dto: UpdateMedicalRecordDto, actor: CurrentUser, ipAddress?: string) {
+    this.assertAdmin(actor, 'Solo el administrador puede editar una historia clínica existente');
     const before = await this.findById(id);
     const patientId = dto.patientId ?? before.patientId;
     const doctorId = dto.doctorId ?? before.doctorId;
@@ -198,10 +201,7 @@ export class MedicalRecordsService {
       doctor: { connect: { id: actor.sub } },
       patientId: record.patientId,
       noteDate: dto.noteDate ? new Date(dto.noteDate) : new Date(),
-      subjective: dto.subjective,
-      objective: dto.objective,
-      assessment: dto.assessment,
-      plan: dto.plan,
+      content: dto.content.trim(),
       doctorName: dto.doctorName ?? record.doctor.fullName,
       createdById: actor.sub,
       updatedById: actor.sub,
@@ -213,7 +213,7 @@ export class MedicalRecordsService {
       doctorId: actor.sub,
       type: 'EVOLUTION',
       title: 'Evolución clínica',
-      summary: note.assessment ?? note.subjective ?? note.plan ?? 'Nota SOAP',
+      summary: note.content,
       entity: 'EvolutionNote',
       entityId: note.id,
       createdById: actor.sub,
@@ -276,13 +276,11 @@ export class MedicalRecordsService {
   }
 
   async updateEvolutionNote(id: string, dto: UpdateEvolutionNoteDto, actor: CurrentUser, ipAddress?: string) {
+    this.assertAdmin(actor, 'Solo el administrador puede editar evoluciones existentes');
     const before = await this.findEvolutionNote(id);
     const note = await this.records.updateEvolutionNote(id, {
       noteDate: dto.noteDate ? new Date(dto.noteDate) : undefined,
-      subjective: dto.subjective,
-      objective: dto.objective,
-      assessment: dto.assessment,
-      plan: dto.plan,
+      content: dto.content.trim(),
       doctorName: dto.doctorName,
       updatedById: actor.sub,
     });
@@ -291,6 +289,7 @@ export class MedicalRecordsService {
   }
 
   async deleteEvolutionNote(id: string, dto: SafeDeleteDto, actor: CurrentUser, ipAddress?: string) {
+    this.assertAdmin(actor, 'Solo el administrador puede eliminar evoluciones');
     const before = await this.findEvolutionNote(id);
     const deleted = await this.records.updateEvolutionNote(id, {
       isDeleted: true,
@@ -302,6 +301,195 @@ export class MedicalRecordsService {
     });
     await this.audit.record({ actorId: actor.sub, action: AuditAction.DELETE, entity: 'EvolutionNote', entityId: id, ipAddress, before, after: { deleted, reason: dto.reason } });
     return deleted;
+  }
+
+  async restoreEvolutionNote(id: string, dto: SafeDeleteDto, actor: CurrentUser, ipAddress?: string) {
+    this.assertAdmin(actor, 'Solo el administrador puede restaurar evoluciones');
+    const before = await this.records.findEvolutionNote(id);
+    if (!before) throw new NotFoundException('Evolution note not found');
+    const restored = await this.records.updateEvolutionNote(id, {
+      isDeleted: false,
+      status: 'ACTIVE',
+      deletedAt: null,
+      deletedBy: null,
+      deleteReason: null,
+      updatedById: actor.sub,
+    });
+    await this.audit.record({ actorId: actor.sub, action: AuditAction.EVOLUTION_RESTORED, entity: 'EvolutionNote', entityId: id, ipAddress, before, after: { restored, reason: dto.reason } });
+    return restored;
+  }
+
+  async listAllEvolutionNotes(id: string, includeArchived = false) {
+    await this.findById(id);
+    if (!includeArchived) return this.records.listEvolutionNotes(id);
+    return this.records.listAllEvolutionNotes(id);
+  }
+
+  async listProcedures(id: string, includeArchived = false) {
+    await this.findById(id);
+    return this.records.listProcedures(id, includeArchived);
+  }
+
+  async createProcedure(id: string, dto: CreateClinicalProcedureDto, actor: CurrentUser, ipAddress?: string) {
+    const record = await this.findById(id);
+    const procedure = await this.records.createProcedure({
+      medicalRecord: { connect: { id } },
+      patient: { connect: { id: record.patientId } },
+      doctor: { connect: { id: actor.sub } },
+      name: dto.name.trim(),
+      performedAt: dto.performedAt ? new Date(dto.performedAt) : new Date(),
+      relatedDiagnosis: dto.relatedDiagnosis?.trim() || null,
+      description: dto.description.trim(),
+      observations: dto.observations?.trim() || null,
+      createdById: actor.sub,
+      updatedById: actor.sub,
+    });
+    await this.audit.record({ actorId: actor.sub, action: AuditAction.CREATE, entity: 'ClinicalProcedure', entityId: procedure.id, ipAddress, after: procedure });
+    return procedure;
+  }
+
+  async updateProcedure(id: string, dto: UpdateClinicalProcedureDto, actor: CurrentUser, ipAddress?: string) {
+    this.assertAdmin(actor, 'Solo el administrador puede editar procedimientos');
+    const before = await this.requireProcedure(id);
+    const procedure = await this.records.updateProcedure(id, {
+      name: dto.name.trim(),
+      performedAt: dto.performedAt ? new Date(dto.performedAt) : undefined,
+      relatedDiagnosis: dto.relatedDiagnosis?.trim() || null,
+      description: dto.description.trim(),
+      observations: dto.observations?.trim() || null,
+      updatedById: actor.sub,
+    });
+    await this.audit.record({ actorId: actor.sub, action: AuditAction.UPDATE, entity: 'ClinicalProcedure', entityId: id, ipAddress, before, after: procedure });
+    return procedure;
+  }
+
+  async archiveProcedure(id: string, dto: SafeDeleteDto, actor: CurrentUser, ipAddress?: string) {
+    this.assertAdmin(actor, 'Solo el administrador puede eliminar procedimientos');
+    const before = await this.requireProcedure(id);
+    const procedure = await this.records.updateProcedure(id, {
+      status: ClinicalEntryStatus.ARCHIVED,
+      archivedAt: new Date(),
+      archivedBy: actor.sub,
+      archiveReason: dto.reason,
+      updatedById: actor.sub,
+    });
+    await this.audit.record({ actorId: actor.sub, action: AuditAction.PROCEDURE_ARCHIVED, entity: 'ClinicalProcedure', entityId: id, ipAddress, before, after: procedure });
+    return procedure;
+  }
+
+  async restoreProcedure(id: string, dto: SafeDeleteDto, actor: CurrentUser, ipAddress?: string) {
+    this.assertAdmin(actor, 'Solo el administrador puede restaurar procedimientos');
+    const before = await this.requireProcedure(id, true);
+    const procedure = await this.records.updateProcedure(id, {
+      status: ClinicalEntryStatus.ACTIVE,
+      archivedAt: null,
+      archivedBy: null,
+      archiveReason: null,
+      updatedById: actor.sub,
+    });
+    await this.audit.record({ actorId: actor.sub, action: AuditAction.PROCEDURE_RESTORED, entity: 'ClinicalProcedure', entityId: id, ipAddress, before, after: { procedure, reason: dto.reason } });
+    return procedure;
+  }
+
+  async addProcedureAttachment(id: string, file: Express.Multer.File, actor: CurrentUser, ipAddress?: string) {
+    const procedure = await this.requireProcedure(id);
+    if (actor.role !== RoleName.SUPER_ADMIN && procedure.createdById !== actor.sub) {
+      throw new ForbiddenException('Solo el autor o el administrador pueden adjuntar archivos');
+    }
+    return this.addClinicalEntryAttachment('procedure', id, file, actor, ipAddress);
+  }
+
+  async listStudies(id: string, includeArchived = false) {
+    await this.findById(id);
+    return this.records.listStudies(id, includeArchived);
+  }
+
+  async createStudy(id: string, dto: CreateDiagnosticStudyDto, actor: CurrentUser, ipAddress?: string) {
+    const record = await this.findById(id);
+    if (actor.role === RoleName.LABORATORY && dto.category !== 'LABORATORY') {
+      throw new ForbiddenException('Laboratorio solo puede crear estudios de laboratorio');
+    }
+    const study = await this.records.createStudy({
+      medicalRecord: { connect: { id } },
+      patient: { connect: { id: record.patientId } },
+      doctor: { connect: { id: actor.sub } },
+      category: dto.category,
+      studyType: dto.studyType.trim(),
+      studyDate: dto.studyDate ? new Date(dto.studyDate) : new Date(),
+      results: dto.results?.trim() || null,
+      observations: dto.observations?.trim() || null,
+      createdByRole: actor.role as RoleName,
+      createdById: actor.sub,
+      updatedById: actor.sub,
+    });
+    await this.audit.record({ actorId: actor.sub, action: AuditAction.CREATE, entity: 'DiagnosticStudy', entityId: study.id, ipAddress, after: study });
+    return study;
+  }
+
+  async updateStudy(id: string, dto: UpdateDiagnosticStudyDto, actor: CurrentUser, ipAddress?: string) {
+    const before = await this.requireStudy(id);
+    const isAdmin = actor.role === RoleName.SUPER_ADMIN;
+    const isLaboratoryOwned = actor.role === RoleName.LABORATORY && before.createdByRole === RoleName.LABORATORY;
+    if (!isAdmin && !isLaboratoryOwned) {
+      throw new ForbiddenException('Laboratorio solo puede editar estudios creados por laboratorio');
+    }
+    if (actor.role === RoleName.LABORATORY && dto.category !== 'LABORATORY') {
+      throw new ForbiddenException('Laboratorio solo puede editar estudios de laboratorio');
+    }
+    const study = await this.records.updateStudy(id, {
+      category: dto.category,
+      studyType: dto.studyType.trim(),
+      studyDate: dto.studyDate ? new Date(dto.studyDate) : undefined,
+      results: dto.results?.trim() || null,
+      observations: dto.observations?.trim() || null,
+      updatedById: actor.sub,
+    });
+    await this.audit.record({ actorId: actor.sub, action: AuditAction.UPDATE, entity: 'DiagnosticStudy', entityId: id, ipAddress, before, after: study });
+    return study;
+  }
+
+  async archiveStudy(id: string, dto: SafeDeleteDto, actor: CurrentUser, ipAddress?: string) {
+    this.assertAdmin(actor, 'Solo el administrador puede eliminar estudios');
+    const before = await this.requireStudy(id);
+    const study = await this.records.updateStudy(id, {
+      status: ClinicalEntryStatus.ARCHIVED,
+      archivedAt: new Date(),
+      archivedBy: actor.sub,
+      archiveReason: dto.reason,
+      updatedById: actor.sub,
+    });
+    await this.audit.record({ actorId: actor.sub, action: AuditAction.STUDY_ARCHIVED, entity: 'DiagnosticStudy', entityId: id, ipAddress, before, after: study });
+    return study;
+  }
+
+  async restoreStudy(id: string, dto: SafeDeleteDto, actor: CurrentUser, ipAddress?: string) {
+    this.assertAdmin(actor, 'Solo el administrador puede restaurar estudios');
+    const before = await this.requireStudy(id, true);
+    const study = await this.records.updateStudy(id, {
+      status: ClinicalEntryStatus.ACTIVE,
+      archivedAt: null,
+      archivedBy: null,
+      archiveReason: null,
+      updatedById: actor.sub,
+    });
+    await this.audit.record({ actorId: actor.sub, action: AuditAction.STUDY_RESTORED, entity: 'DiagnosticStudy', entityId: id, ipAddress, before, after: { study, reason: dto.reason } });
+    return study;
+  }
+
+  async addStudyAttachment(id: string, file: Express.Multer.File, actor: CurrentUser, ipAddress?: string) {
+    const study = await this.requireStudy(id);
+    const canUpload = actor.role === RoleName.SUPER_ADMIN
+      || (actor.role === RoleName.DOCTOR && study.createdById === actor.sub)
+      || (actor.role === RoleName.LABORATORY && study.createdByRole === RoleName.LABORATORY);
+    if (!canUpload) throw new ForbiddenException('No tiene permiso para adjuntar archivos a este estudio');
+    return this.addClinicalEntryAttachment('study', id, file, actor, ipAddress);
+  }
+
+  async clinicalEntryAttachmentDownload(id: string) {
+    const attachment = await this.records.findClinicalEntryAttachment(id);
+    if (!attachment) throw new NotFoundException('Archivo no encontrado');
+    const root = this.config.get<string>('LOCAL_STORAGE_ROOT') ?? './storage';
+    return { attachment, stream: createReadStream(join(root, attachment.storageKey)) };
   }
 
   async findAttachment(id: string) {
@@ -358,14 +546,6 @@ export class MedicalRecordsService {
       lastPeriodDate: dto.lastPeriodDate ? new Date(dto.lastPeriodDate) : undefined,
       dueDate: dto.dueDate ? new Date(dto.dueDate) : undefined,
     }, actor, ipAddress);
-  }
-
-  listBodyMap(id: string) {
-    return this.records.listClinicalResource('bodyMapFinding', id);
-  }
-
-  createBodyMap(id: string, dto: CreateBodyMapFindingDto, actor: CurrentUser, ipAddress?: string) {
-    return this.createClinicalResource(id, 'BodyMapFinding', 'bodyMapFinding', { ...dto }, actor, ipAddress);
   }
 
   listDentalChart(id: string) {
@@ -468,7 +648,6 @@ export class MedicalRecordsService {
 
   private eventTitle(entity: string) {
     const titles: Record<string, string> = {
-      BodyMapFinding: 'Hallazgo anatómico',
       DentalFinding: 'Odontograma',
       LabOrder: 'Orden de laboratorio',
       ImagingOrder: 'Orden de imagen',
@@ -480,7 +659,6 @@ export class MedicalRecordsService {
   }
 
   private eventSummary(entity: string, created: any) {
-    if (entity === 'BodyMapFinding') return `${created.layer ?? 'Capa'} · ${created.region}: ${created.description ?? 'evaluado'}`;
     if (entity === 'DentalFinding') return `Pieza ${created.toothNumber}: ${created.status}`;
     if (entity === 'LabOrder') return created.orderType;
     if (entity === 'ImagingOrder') return created.studyType;
@@ -499,6 +677,32 @@ export class MedicalRecordsService {
     const note = await this.records.findEvolutionNote(noteId);
     if (!note) throw new NotFoundException('Evolution note not found');
     return this.buildPdf(note.medicalRecord, 'evolution', note, actor);
+  }
+
+  async procedurePdf(procedureId: string, actor?: CurrentUser) {
+    const procedure = await this.requireProcedure(procedureId, true);
+    const doc = new PDFDocument({ size: 'LETTER', margin: 48 });
+    const chunks: Buffer[] = [];
+    doc.on('data', (chunk: Buffer) => chunks.push(chunk));
+    const done = new Promise<Buffer>((resolve) => doc.on('end', () => resolve(Buffer.concat(chunks))));
+
+    doc.fontSize(18).fillColor('#1f2f66').text('Clínica Keyser');
+    doc.fontSize(14).fillColor('#0f172a').text('Procedimiento clínico');
+    doc.moveDown();
+    doc.fontSize(10).fillColor('#334155');
+    doc.text(`Paciente: ${procedure.patient.fullName}`);
+    doc.text(`Código paciente: ${procedure.patient.patientCode}`);
+    doc.text(`Fecha y hora: ${procedure.performedAt.toLocaleString('es-NI')}`);
+    doc.text(`Médico responsable: ${procedure.doctor.fullName}`);
+    doc.moveDown();
+    this.pdfSection(doc, 'Procedimiento', procedure.name);
+    this.pdfSection(doc, 'Diagnóstico relacionado', procedure.relatedDiagnosis);
+    this.pdfSection(doc, 'Descripción', procedure.description);
+    this.pdfSection(doc, 'Observaciones', procedure.observations);
+    doc.moveDown().fontSize(9).fillColor('#64748b').text(`Generado por: ${actor?.email ?? 'Sistema'} | ${new Date().toLocaleString('es-NI')}`);
+    doc.end();
+    await this.audit.record({ actorId: actor?.sub, action: AuditAction.EXPORT, entity: 'ClinicalProcedure', entityId: procedureId });
+    return done;
   }
 
   private mergeHistory(dto: Partial<CreateMedicalRecordDto>, nested?: ClinicalHistoryDto) {
@@ -550,10 +754,7 @@ export class MedicalRecordsService {
       this.pdfSection(doc, 'Plan', record.treatmentPlan);
       this.pdfSection(doc, 'Recomendaciones', record.recommendations);
     } else if (kind === 'evolution') {
-      this.pdfSection(doc, 'Subjetivo', note?.subjective);
-      this.pdfSection(doc, 'Objetivo', note?.objective);
-      this.pdfSection(doc, 'Analisis', note?.assessment);
-      this.pdfSection(doc, 'Plan', note?.plan);
+      this.pdfSection(doc, 'Evolución', note?.content);
       this.pdfSection(doc, 'Doctor', note?.doctorName);
     } else {
       this.pdfSection(doc, 'Motivo de consulta', record.reasonForVisit);
@@ -597,5 +798,53 @@ export class MedicalRecordsService {
     doc.moveDown(0.25);
     doc.fontSize(10).fillColor('#334155').text(value?.trim() || 'No registrado.');
     doc.moveDown();
+  }
+
+  private assertAdmin(actor: CurrentUser, message: string) {
+    if (actor.role !== RoleName.SUPER_ADMIN && actor.role !== RoleName.ADMIN) {
+      throw new ForbiddenException(message);
+    }
+  }
+
+  private async requireProcedure(id: string, includeArchived = false) {
+    const procedure = await this.records.findProcedure(id);
+    if (!procedure || (!includeArchived && procedure.status === ClinicalEntryStatus.ARCHIVED)) {
+      throw new NotFoundException('Procedimiento no encontrado');
+    }
+    return procedure;
+  }
+
+  private async requireStudy(id: string, includeArchived = false) {
+    const study = await this.records.findStudy(id);
+    if (!study || (!includeArchived && study.status === ClinicalEntryStatus.ARCHIVED)) {
+      throw new NotFoundException('Estudio no encontrado');
+    }
+    return study;
+  }
+
+  private async addClinicalEntryAttachment(
+    owner: 'procedure' | 'study',
+    ownerId: string,
+    file: Express.Multer.File,
+    actor: CurrentUser,
+    ipAddress?: string,
+  ) {
+    if (!file) throw new BadRequestException('Seleccione un archivo');
+    if (!['image/jpeg', 'image/png', 'application/pdf'].includes(file.mimetype)) {
+      throw new BadRequestException('Solo se permiten archivos PDF, JPG o PNG');
+    }
+    const stored = await this.storage.save(file, owner === 'procedure' ? 'procedures' : 'studies');
+    const attachment = await this.records.createClinicalEntryAttachment({
+      ...(owner === 'procedure'
+        ? { procedure: { connect: { id: ownerId } } }
+        : { study: { connect: { id: ownerId } } }),
+      fileName: stored.fileName,
+      mimeType: stored.mimeType,
+      size: stored.size,
+      storageKey: stored.storageKey,
+      uploadedBy: { connect: { id: actor.sub } },
+    });
+    await this.audit.record({ actorId: actor.sub, action: AuditAction.CREATE, entity: 'ClinicalEntryAttachment', entityId: attachment.id, ipAddress, after: attachment });
+    return attachment;
   }
 }

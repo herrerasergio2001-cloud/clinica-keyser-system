@@ -24,7 +24,7 @@ const permissionsByRole = {
   [RoleName.DOCTOR]: ['patients:read', 'patients:update', 'medical-records:*', 'appointments:*', 'reports:read', 'documents:*', 'prescriptions:*'],
   [RoleName.RECEPTION]: ['patients:*', 'medical-records:read', 'attachments:read', 'appointments:*', 'documents:read', 'orders:create'],
   [RoleName.PHARMACY]: ['pharmacy:*', 'inventory:*', 'pos:*'],
-  [RoleName.LABORATORY]: ['laboratory:*', 'patients:read'],
+  [RoleName.LABORATORY]: ['laboratory:*', 'patients:read', 'medical-records:read', 'attachments:read'],
 };
 
 function quote(identifier) {

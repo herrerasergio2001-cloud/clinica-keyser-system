@@ -11,7 +11,7 @@ const permissionsByRole: Record<RoleName, string[]> = {
   RECEPTION: ['patients:*', 'medical-records:read', 'attachments:read', 'appointments:*', 'documents:read', 'orders:create'],
   CASHIER: ['pos:*', 'billing:*', 'patients:read'],
   PHARMACY: ['pharmacy:*', 'inventory:*', 'pos:*'],
-  LABORATORY: ['laboratory:*', 'patients:read'],
+  LABORATORY: ['laboratory:*', 'patients:read', 'medical-records:read', 'attachments:read'],
   ACCOUNTING: ['accounting:*', 'billing:read', 'reports:*'],
 };
 
@@ -345,10 +345,7 @@ async function main() {
             patientId: maria.id,
             doctorId: doctor.id,
             noteDate: new Date('2026-05-18T09:30:00.000Z'),
-            subjective: 'Refiere mejoria parcial tras reposo.',
-            objective: 'PA 140/88, sin signos de alarma.',
-            assessment: 'Hipertension en ajuste terapeutico.',
-            plan: 'Continuar tratamiento, control en 4 semanas.',
+            content: 'Refiere mejoría parcial tras reposo. PA 140/88, sin signos de alarma. Hipertensión en ajuste terapéutico. Continuar tratamiento y control en 4 semanas.',
             doctorName: 'Doctor Sergio Herrera',
             createdById: superAdmin.id,
             updatedById: superAdmin.id,
@@ -377,25 +374,6 @@ async function main() {
       nextDoseAt: new Date('2027-05-18T10:00:00.000Z'),
       lotNumber: 'VAC-2026-001',
       observations: 'Aplicada sin reacciones inmediatas.',
-      createdById: superAdmin.id,
-      updatedById: superAdmin.id,
-    },
-  });
-
-  await prisma.bodyMapFinding.upsert({
-    where: { id: 'seed-body-maria-thorax' },
-    update: {},
-    create: {
-      id: 'seed-body-maria-thorax',
-      medicalRecordId: record.id,
-      patientId: maria.id,
-      doctorId: doctor.id,
-      view: 'anterior',
-      region: 'Tórax',
-      description: 'Sin dolor torácico actual. Auscultación sin hallazgos agregados.',
-      hasPain: false,
-      hasInflammation: false,
-      hasLesion: false,
       createdById: superAdmin.id,
       updatedById: superAdmin.id,
     },

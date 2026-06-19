@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Header, Ip, Param, Patch, Post, Query, StreamableFile, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Header, Ip, Param, Patch, Post, Query, StreamableFile, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { CurrentUser } from '../../shared/decorators/current-user.decorator';
@@ -127,6 +127,12 @@ export class ClinicalDocumentsController {
     return this.documents.createPrescription(dto, user, ipAddress);
   }
 
+  @Get('prescriptions')
+  @Permissions('*', 'documents:*', 'prescriptions:*', 'medical-records:read')
+  prescriptions(@Query('medicalRecordId') medicalRecordId?: string) {
+    return this.documents.listPrescriptions(medicalRecordId);
+  }
+
   @Get('prescriptions/:id')
   @Permissions('*', 'documents:*', 'prescriptions:*', 'medical-records:read')
   prescription(@Param('id') id: string) {
@@ -147,6 +153,13 @@ export class ClinicalDocumentsController {
     return this.documents.voidPrescription(id, dto, user, ipAddress);
   }
 
+  @Delete('prescriptions/:id')
+  @Roles('SUPER_ADMIN')
+  @Permissions('*')
+  deletePrescription(@Param('id') id: string, @Body() dto: SafeDeleteDto, @CurrentUser() user: CurrentUser, @Ip() ipAddress: string) {
+    return this.documents.deletePrescription(id, dto, user, ipAddress);
+  }
+
   @Get('prescriptions/:id/pdf')
   @Roles('SUPER_ADMIN', 'DOCTOR')
   @Permissions('*', 'documents:*', 'prescriptions:*', 'medical-records:read')
@@ -161,6 +174,12 @@ export class ClinicalDocumentsController {
   @Permissions('*', 'documents:*', 'medical-records:*', 'orders:create')
   createLabOrder(@Body() dto: CreateLabOrderExternalDto, @CurrentUser() user: CurrentUser, @Ip() ipAddress: string) {
     return this.documents.createLabOrderExternal(dto, user, ipAddress);
+  }
+
+  @Get('lab-orders-external')
+  @Permissions('*', 'documents:*', 'medical-records:read')
+  labOrders(@Query('medicalRecordId') medicalRecordId?: string) {
+    return this.documents.listLabOrdersExternal(medicalRecordId);
   }
 
   @Get('lab-orders-external/:id')
@@ -183,11 +202,24 @@ export class ClinicalDocumentsController {
     return this.documents.voidLabOrderExternal(id, dto, user, ipAddress);
   }
 
+  @Delete('lab-orders-external/:id')
+  @Roles('SUPER_ADMIN')
+  @Permissions('*')
+  deleteLabOrder(@Param('id') id: string, @Body() dto: SafeDeleteDto, @CurrentUser() user: CurrentUser, @Ip() ipAddress: string) {
+    return this.documents.deleteLabOrderExternal(id, dto, user, ipAddress);
+  }
+
   @Post('imaging-orders')
   @Roles('SUPER_ADMIN', 'DOCTOR', 'RECEPTION')
   @Permissions('*', 'documents:*', 'medical-records:*', 'orders:create')
   createImagingOrder(@Body() dto: CreateImagingOrderDto, @CurrentUser() user: CurrentUser, @Ip() ipAddress: string) {
     return this.documents.createImagingOrder(dto, user, ipAddress);
+  }
+
+  @Get('imaging-orders')
+  @Permissions('*', 'documents:*', 'medical-records:read')
+  imagingOrders(@Query('medicalRecordId') medicalRecordId?: string) {
+    return this.documents.listImagingOrders(medicalRecordId);
   }
 
   @Get('imaging-orders/:id')
@@ -208,6 +240,13 @@ export class ClinicalDocumentsController {
   @Permissions('*', 'documents:*', 'medical-records:*')
   voidImagingOrder(@Param('id') id: string, @Body() dto: SafeDeleteDto, @CurrentUser() user: CurrentUser, @Ip() ipAddress: string) {
     return this.documents.voidImagingOrder(id, dto, user, ipAddress);
+  }
+
+  @Delete('imaging-orders/:id')
+  @Roles('SUPER_ADMIN')
+  @Permissions('*')
+  deleteImagingOrder(@Param('id') id: string, @Body() dto: SafeDeleteDto, @CurrentUser() user: CurrentUser, @Ip() ipAddress: string) {
+    return this.documents.deleteImagingOrder(id, dto, user, ipAddress);
   }
 
   @Post('documents/certificates')

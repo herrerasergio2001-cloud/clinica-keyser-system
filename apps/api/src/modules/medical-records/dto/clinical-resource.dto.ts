@@ -1,4 +1,4 @@
-import { IsBoolean, IsDateString, IsInt, IsNumber, IsOptional, IsString } from 'class-validator';
+import { IsDateString, IsInt, IsNumber, IsOptional, IsString } from 'class-validator';
 
 export class CreateVaccineRecordDto {
   @IsString()
@@ -77,50 +77,6 @@ export class CreatePregnancyControlDto {
   @IsOptional()
   @IsString()
   alerts?: string;
-}
-
-export class CreateBodyMapFindingDto {
-  @IsString()
-  view!: string;
-
-  @IsOptional()
-  @IsString()
-  layer?: string;
-
-  @IsString()
-  region!: string;
-
-  @IsOptional()
-  @IsString()
-  description?: string;
-
-  @IsOptional()
-  @IsString()
-  relatedDiagnosis?: string;
-
-  @IsOptional()
-  @IsBoolean()
-  hasPain?: boolean;
-
-  @IsOptional()
-  @IsBoolean()
-  hasInflammation?: boolean;
-
-  @IsOptional()
-  @IsBoolean()
-  hasLesion?: boolean;
-
-  @IsOptional()
-  @IsBoolean()
-  hasMass?: boolean;
-
-  @IsOptional()
-  @IsBoolean()
-  hasFunctionalLimitation?: boolean;
-
-  @IsOptional()
-  @IsString()
-  imageUrl?: string;
 }
 
 export class CreateDentalFindingDto {

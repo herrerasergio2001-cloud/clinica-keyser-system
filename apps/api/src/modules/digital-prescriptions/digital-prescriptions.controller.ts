@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Header, Ip, Param, Patch, Post, Query, StreamableFile, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Header, Ip, Param, Patch, Post, Query, StreamableFile, UseGuards } from '@nestjs/common';
 import { CurrentUser } from '../../shared/decorators/current-user.decorator';
 import { Roles } from '../../shared/decorators/roles.decorator';
 import { SafeDeleteDto } from '../../shared/dto/safe-delete.dto';
@@ -35,15 +35,21 @@ export class DigitalPrescriptionsController {
   }
 
   @Patch(':id')
-  @Roles('SUPER_ADMIN', 'DOCTOR')
+  @Roles('SUPER_ADMIN', 'ADMIN')
   update(@Param('id') id: string, @Body() dto: UpdateDigitalPrescriptionDto, @CurrentUser() user: CurrentUser, @Ip() ipAddress: string) {
     return this.prescriptions.update(id, dto, user, ipAddress);
   }
 
   @Patch(':id/void')
-  @Roles('SUPER_ADMIN', 'DOCTOR')
+  @Roles('SUPER_ADMIN', 'ADMIN')
   void(@Param('id') id: string, @Body() dto: SafeDeleteDto, @CurrentUser() user: CurrentUser, @Ip() ipAddress: string) {
     return this.prescriptions.void(id, dto, user, ipAddress);
+  }
+
+  @Delete(':id')
+  @Roles('SUPER_ADMIN')
+  hardDelete(@Param('id') id: string, @Body() dto: SafeDeleteDto, @CurrentUser() user: CurrentUser, @Ip() ipAddress: string) {
+    return this.prescriptions.hardDelete(id, dto, user, ipAddress);
   }
 
   @Get(':id/pdf')

@@ -41,4 +41,44 @@ describe('AuthService', () => {
       refreshToken: 'refresh',
     });
   });
+
+  it('refreshes the matching session when a user has several active sessions', async () => {
+    const validRefreshToken = 'valid-refresh-token';
+    const prisma = {
+      session: {
+        findMany: jest.fn().mockResolvedValue([
+          { id: 'other-session', refreshTokenHash: await bcrypt.hash('another-token', 4) },
+          { id: 'matching-session', refreshTokenHash: await bcrypt.hash(validRefreshToken, 4) },
+        ]),
+        update: jest.fn(),
+        create: jest.fn(),
+      },
+    };
+    const service = new AuthService(
+      {
+        findById: jest.fn().mockResolvedValue({
+          id: 'u1',
+          email: 'doctor@clinicakeyser.com',
+          isActive: true,
+          role: { name: 'DOCTOR', permissions: ['medical-records:*'] },
+        }),
+      } as never,
+      {
+        verifyAsync: jest.fn().mockResolvedValue({ sub: 'u1' }),
+        signAsync: jest.fn().mockResolvedValueOnce('new-access').mockResolvedValueOnce('new-refresh'),
+      } as never,
+      { getOrThrow: jest.fn().mockReturnValue('secret'), get: jest.fn() } as never,
+      prisma as never,
+      { record: jest.fn() } as never,
+    );
+
+    await expect(service.refresh(validRefreshToken)).resolves.toEqual({
+      accessToken: 'new-access',
+      refreshToken: 'new-refresh',
+    });
+    expect(prisma.session.update).toHaveBeenCalledWith({
+      where: { id: 'matching-session' },
+      data: { revokedAt: expect.any(Date) },
+    });
+  });
 });
