@@ -5,7 +5,15 @@ import { CurrentUser } from '../../shared/decorators/current-user.decorator';
 import { Permissions } from '../../shared/decorators/permissions.decorator';
 import { PermissionsGuard } from '../../shared/guards/permissions.guard';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { PublicFAQDto, PublicNewsDto, PublicPromotionDto, PublicServiceDto, UpdatePublicSettingsDto } from './dto/public-site.dto';
+import {
+  PublicFAQDto,
+  PublicGalleryImageDto,
+  PublicNewsDto,
+  PublicPromotionDto,
+  PublicServiceDto,
+  PublicTeamMemberDto,
+  UpdatePublicSettingsDto,
+} from './dto/public-site.dto';
 import { PublicSiteService } from './public-site.service';
 
 @Controller()
@@ -37,11 +45,31 @@ export class PublicSiteController {
     return this.publicSite.faqs();
   }
 
+  @Get('public/gallery')
+  gallery() {
+    return this.publicSite.gallery();
+  }
+
+  @Get('public/team')
+  team() {
+    return this.publicSite.team();
+  }
+
   @Get('public/media')
   @Header('Cache-Control', 'public, max-age=86400')
   media(@Query('key') key: string) {
-    return new StreamableFile(this.publicSite.media(key));
+    return new StreamableFile(this.publicSite.media(key), { type: mediaContentType(key) });
   }
+}
+
+function mediaContentType(key: string) {
+  const extension = key.toLowerCase().split('.').pop();
+  if (extension === 'png') return 'image/png';
+  if (extension === 'webp') return 'image/webp';
+  if (extension === 'svg') return 'image/svg+xml';
+  if (extension === 'mp4') return 'video/mp4';
+  if (extension === 'webm') return 'video/webm';
+  return 'image/jpeg';
 }
 
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -63,9 +91,9 @@ export class AdminPublicSiteController {
 
   @Post('upload')
   @Permissions('*')
-  @UseInterceptors(FileInterceptor('file', { storage: memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } }))
+  @UseInterceptors(FileInterceptor('file', { storage: memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } }))
   upload(@UploadedFile() file: Express.Multer.File, @CurrentUser() user: CurrentUser, @Ip() ipAddress: string) {
-    return this.publicSite.uploadImage(file, user, ipAddress);
+    return this.publicSite.uploadMedia(file, user, ipAddress);
   }
 
   @Post('services')
@@ -138,5 +166,41 @@ export class AdminPublicSiteController {
   @Permissions('*')
   deleteFaq(@Param('id') id: string, @CurrentUser() user: CurrentUser, @Ip() ipAddress: string) {
     return this.publicSite.delete('faq', id, user, ipAddress);
+  }
+
+  @Post('gallery')
+  @Permissions('*')
+  createGalleryImage(@Body() dto: PublicGalleryImageDto, @CurrentUser() user: CurrentUser, @Ip() ipAddress: string) {
+    return this.publicSite.createGalleryImage(dto, user, ipAddress);
+  }
+
+  @Patch('gallery/:id')
+  @Permissions('*')
+  updateGalleryImage(@Param('id') id: string, @Body() dto: PublicGalleryImageDto, @CurrentUser() user: CurrentUser, @Ip() ipAddress: string) {
+    return this.publicSite.updateGalleryImage(id, dto, user, ipAddress);
+  }
+
+  @Delete('gallery/:id')
+  @Permissions('*')
+  deleteGalleryImage(@Param('id') id: string, @CurrentUser() user: CurrentUser, @Ip() ipAddress: string) {
+    return this.publicSite.delete('gallery', id, user, ipAddress);
+  }
+
+  @Post('team')
+  @Permissions('*')
+  createTeamMember(@Body() dto: PublicTeamMemberDto, @CurrentUser() user: CurrentUser, @Ip() ipAddress: string) {
+    return this.publicSite.createTeamMember(dto, user, ipAddress);
+  }
+
+  @Patch('team/:id')
+  @Permissions('*')
+  updateTeamMember(@Param('id') id: string, @Body() dto: PublicTeamMemberDto, @CurrentUser() user: CurrentUser, @Ip() ipAddress: string) {
+    return this.publicSite.updateTeamMember(id, dto, user, ipAddress);
+  }
+
+  @Delete('team/:id')
+  @Permissions('*')
+  deleteTeamMember(@Param('id') id: string, @CurrentUser() user: CurrentUser, @Ip() ipAddress: string) {
+    return this.publicSite.delete('team', id, user, ipAddress);
   }
 }

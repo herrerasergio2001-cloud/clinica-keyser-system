@@ -16,6 +16,22 @@ export class UpdatePublicSettingsDto {
 
   @IsOptional()
   @IsString()
+  heroImageUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  heroVideoUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  institutionalText?: string;
+
+  @IsOptional()
+  @IsString()
+  institutionalImageUrl?: string;
+
+  @IsOptional()
+  @IsString()
   primaryPhone?: string;
 
   @IsOptional()
@@ -49,6 +65,18 @@ export class UpdatePublicSettingsDto {
   @IsOptional()
   @IsString()
   tiktokUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  aestheticFacebookUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  aestheticInstagramUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  aestheticTiktokUrl?: string;
 
   @IsOptional()
   @IsString()
@@ -137,6 +165,56 @@ export class PublicFAQDto {
   @IsOptional()
   @IsString()
   category?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  sortOrder?: number;
+}
+
+export class PublicGalleryImageDto {
+  @IsString()
+  title!: string;
+
+  @IsString()
+  altText!: string;
+
+  @IsString()
+  imageUrl!: string;
+
+  @IsOptional()
+  @IsString()
+  category?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  sortOrder?: number;
+}
+
+export class PublicTeamMemberDto {
+  @IsString()
+  name!: string;
+
+  @IsString()
+  specialty!: string;
+
+  @IsString()
+  description!: string;
+
+  @IsOptional()
+  @IsString()
+  imageUrl?: string;
 
   @IsOptional()
   @IsBoolean()

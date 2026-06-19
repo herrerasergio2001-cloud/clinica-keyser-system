@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'Clínica Keyser | Atención médica integral en Chinandega',
-  description: 'Clínica Keyser: medicina general, ultrasonido, laboratorio, pediatría, ginecología, estética y servicios médicos en Chinandega.',
+  description: 'Clínica Keyser ofrece atención médica integral, especialidades, ultrasonidos y tecnología clínica en Chinandega.',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

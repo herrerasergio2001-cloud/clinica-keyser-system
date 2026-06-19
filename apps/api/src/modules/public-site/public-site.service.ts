@@ -7,9 +7,17 @@ import { AuditService } from '../audit/audit.service';
 import { CurrentUser } from '../../shared/decorators/current-user.decorator';
 import { FileStorage } from '../../shared/storage/file-storage';
 import { PrismaService } from '../../shared/prisma/prisma.service';
-import { PublicFAQDto, PublicNewsDto, PublicPromotionDto, PublicServiceDto, UpdatePublicSettingsDto } from './dto/public-site.dto';
+import {
+  PublicFAQDto,
+  PublicGalleryImageDto,
+  PublicNewsDto,
+  PublicPromotionDto,
+  PublicServiceDto,
+  PublicTeamMemberDto,
+  UpdatePublicSettingsDto,
+} from './dto/public-site.dto';
 
-type PublicModel = 'service' | 'promotion' | 'news' | 'faq';
+type PublicModel = 'service' | 'promotion' | 'news' | 'faq' | 'gallery' | 'team';
 
 @Injectable()
 export class PublicSiteService {
@@ -61,15 +69,31 @@ export class PublicSiteService {
     });
   }
 
+  gallery(includeInactive = false) {
+    return this.prisma.publicGalleryImage.findMany({
+      where: includeInactive ? undefined : { isActive: true },
+      orderBy: [{ sortOrder: 'asc' }, { title: 'asc' }],
+    });
+  }
+
+  team(includeInactive = false) {
+    return this.prisma.publicTeamMember.findMany({
+      where: includeInactive ? undefined : { isActive: true },
+      orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+    });
+  }
+
   async adminContent() {
-    const [settings, services, promotions, news, faqs] = await Promise.all([
+    const [settings, services, promotions, news, faqs, gallery, team] = await Promise.all([
       this.settings(),
       this.services(true),
       this.promotions(true),
       this.news(true),
       this.faqs(true),
+      this.gallery(true),
+      this.team(true),
     ]);
-    return { settings, services, promotions, news, faqs };
+    return { settings, services, promotions, news, faqs, gallery, team };
   }
 
   async updateSettings(dto: UpdatePublicSettingsDto, actor: CurrentUser, ipAddress?: string) {
@@ -135,12 +159,42 @@ export class PublicSiteService {
     return faq;
   }
 
+  async createGalleryImage(dto: PublicGalleryImageDto, actor: CurrentUser, ipAddress?: string) {
+    const item = await this.prisma.publicGalleryImage.create({ data: dto });
+    await this.audit.record({ actorId: actor.sub, action: AuditAction.CREATE, entity: 'PublicGalleryImage', entityId: item.id, ipAddress, after: item });
+    return item;
+  }
+
+  async updateGalleryImage(id: string, dto: PublicGalleryImageDto, actor: CurrentUser, ipAddress?: string) {
+    const before = await this.prisma.publicGalleryImage.findUnique({ where: { id } });
+    if (!before) throw new NotFoundException('Imagen de galería no encontrada');
+    const item = await this.prisma.publicGalleryImage.update({ where: { id }, data: dto });
+    await this.audit.record({ actorId: actor.sub, action: AuditAction.UPDATE, entity: 'PublicGalleryImage', entityId: id, ipAddress, before, after: item });
+    return item;
+  }
+
+  async createTeamMember(dto: PublicTeamMemberDto, actor: CurrentUser, ipAddress?: string) {
+    const item = await this.prisma.publicTeamMember.create({ data: dto });
+    await this.audit.record({ actorId: actor.sub, action: AuditAction.CREATE, entity: 'PublicTeamMember', entityId: item.id, ipAddress, after: item });
+    return item;
+  }
+
+  async updateTeamMember(id: string, dto: PublicTeamMemberDto, actor: CurrentUser, ipAddress?: string) {
+    const before = await this.prisma.publicTeamMember.findUnique({ where: { id } });
+    if (!before) throw new NotFoundException('Integrante del equipo no encontrado');
+    const item = await this.prisma.publicTeamMember.update({ where: { id }, data: dto });
+    await this.audit.record({ actorId: actor.sub, action: AuditAction.UPDATE, entity: 'PublicTeamMember', entityId: id, ipAddress, before, after: item });
+    return item;
+  }
+
   async delete(kind: PublicModel, id: string, actor: CurrentUser, ipAddress?: string) {
     const delegates = {
       service: this.prisma.publicService,
       promotion: this.prisma.publicPromotion,
       news: this.prisma.publicNews,
       faq: this.prisma.publicFAQ,
+      gallery: this.prisma.publicGalleryImage,
+      team: this.prisma.publicTeamMember,
     } as const;
     const delegate = delegates[kind] as unknown as {
       findUnique(args: { where: { id: string } }): Promise<unknown>;
@@ -153,14 +207,16 @@ export class PublicSiteService {
     return deleted;
   }
 
-  async uploadImage(file: Express.Multer.File, actor: CurrentUser, ipAddress?: string) {
+  async uploadMedia(file: Express.Multer.File, actor: CurrentUser, ipAddress?: string) {
     if (!file) throw new BadRequestException('Archivo requerido');
-    if (!['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml'].includes(file.mimetype)) {
-      throw new BadRequestException('Solo se permiten imágenes JPG, PNG, WEBP o SVG');
+    const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml', 'video/mp4', 'video/webm'];
+    if (!allowed.includes(file.mimetype)) {
+      throw new BadRequestException('Solo se permiten imágenes JPG, PNG, WEBP o SVG y videos MP4 o WEBM');
     }
     const stored = await this.storage.save(file, 'public-site');
-    const after = { ...stored, imageUrl: `/api/public/media?key=${encodeURIComponent(stored.storageKey)}` };
-    await this.audit.record({ actorId: actor.sub, action: AuditAction.CREATE, entity: 'PublicSiteImage', ipAddress, after });
+    const mediaUrl = `/api/public/media?key=${encodeURIComponent(stored.storageKey)}`;
+    const after = { ...stored, mediaUrl, imageUrl: mediaUrl };
+    await this.audit.record({ actorId: actor.sub, action: AuditAction.CREATE, entity: 'PublicSiteMedia', ipAddress, after });
     return after;
   }
 

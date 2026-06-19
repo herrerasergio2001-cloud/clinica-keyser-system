@@ -728,13 +728,18 @@ async function main() {
     where: { id: 'clinic-keyser-public-settings' },
     update: {
       clinicName: 'Clínica Keyser',
-      slogan: 'Atención médica integral, cercana y confiable en Chinandega.',
-      logoUrl: '/clinica-keyser-logo.jpg',
+      slogan: 'Atención médica integral en Chinandega.',
+      logoUrl: '/clinic-media/logo.png',
+      heroImageUrl: '/clinic-media/fachada.jpg',
+      institutionalText: 'Cuidamos de cada paciente con atención cercana, criterio médico y el respaldo de un equipo comprometido con su bienestar.',
+      institutionalImageUrl: '/clinic-media/consulta-medica.jpg',
       primaryPhone: '8495-2200',
       aestheticPhone: '7650-7993',
       whatsapp: '50584952200',
       address: 'De Ferretería Luvy, 120 metros al norte, Chinandega, Nicaragua.',
       schedule: 'Lunes a sábado, atención por cita y según disponibilidad médica.',
+      instagramUrl: 'https://www.instagram.com/clinicakeyser',
+      aestheticTiktokUrl: 'https://www.tiktok.com/@centro_estetico_keyser',
       primaryColor: '#1f2f66',
       secondaryColor: '#ef2f32',
       accentColor: '#087f8c',
@@ -742,13 +747,18 @@ async function main() {
     create: {
       id: 'clinic-keyser-public-settings',
       clinicName: 'Clínica Keyser',
-      slogan: 'Atención médica integral, cercana y confiable en Chinandega.',
-      logoUrl: '/clinica-keyser-logo.jpg',
+      slogan: 'Atención médica integral en Chinandega.',
+      logoUrl: '/clinic-media/logo.png',
+      heroImageUrl: '/clinic-media/fachada.jpg',
+      institutionalText: 'Cuidamos de cada paciente con atención cercana, criterio médico y el respaldo de un equipo comprometido con su bienestar.',
+      institutionalImageUrl: '/clinic-media/consulta-medica.jpg',
       primaryPhone: '8495-2200',
       aestheticPhone: '7650-7993',
       whatsapp: '50584952200',
       address: 'De Ferretería Luvy, 120 metros al norte, Chinandega, Nicaragua.',
       schedule: 'Lunes a sábado, atención por cita y según disponibilidad médica.',
+      instagramUrl: 'https://www.instagram.com/clinicakeyser',
+      aestheticTiktokUrl: 'https://www.tiktok.com/@centro_estetico_keyser',
       primaryColor: '#1f2f66',
       secondaryColor: '#ef2f32',
       accentColor: '#087f8c',
@@ -756,22 +766,23 @@ async function main() {
   });
 
   const publicServices = [
-    ['medicina-general', 'Medicina general', 'Atención médica integral para niños, adultos y adultos mayores.', 'Evaluación clínica, seguimiento de enfermedades comunes, control preventivo y orientación médica cercana.', 'stethoscope', 'Consulta'],
-    ['ultrasonido', 'Ultrasonido', 'Estudios de imagen con atención profesional y explicación clara.', 'Ultrasonidos abdominales, gineco-obstétricos y estudios solicitados por su médico.', 'scan', 'Imagen'],
-    ['laboratorio-clinico', 'Laboratorio clínico', 'Toma y procesamiento de muestras para apoyar el diagnóstico médico.', 'Biometría hemática, bioquímica, uroanálisis, coprología y campañas de toma de muestras.', 'flask', 'Laboratorio'],
-    ['pediatria', 'Pediatría', 'Atención amable para niñas y niños, controles y seguimiento.', 'Control de crecimiento, cuadros respiratorios, fiebre, vacunas y orientación familiar.', 'baby', 'Consulta'],
-    ['ginecologia', 'Ginecología', 'Cuidado de la salud femenina en un ambiente respetuoso y confiable.', 'Controles ginecológicos, embarazo, ultrasonido y orientación preventiva.', 'venus', 'Consulta'],
-    ['psicologia', 'Psicología', 'Acompañamiento profesional para bienestar emocional.', 'Atención psicológica para procesos personales, familiares y seguimiento terapéutico.', 'brain', 'Salud mental'],
-    ['odontologia', 'Odontología', 'Valoración dental, prevención y tratamientos básicos.', 'Evaluación, restauraciones, limpiezas y orientación de salud bucal.', 'tooth', 'Odontología'],
-    ['ortopedia', 'Ortopedia', 'Evaluación de dolor, lesiones y movilidad.', 'Consulta para dolor articular, lesiones, seguimiento y referencias cuando se requiera.', 'bone', 'Especialidad'],
-    ['medicina-estetica', 'Medicina estética', 'Procedimientos estéticos con enfoque médico y personalizado.', 'Valoración estética, cuidado facial y tratamientos según indicación profesional.', 'sparkles', 'Estética'],
-    ['cirugia', 'Cirugía', 'Valoración quirúrgica y seguimiento clínico.', 'Evaluación, orientación y seguimiento de procedimientos según criterio médico.', 'scissors', 'Especialidad'],
-    ['electrocardiograma', 'Electrocardiograma', 'Registro cardíaco rápido para evaluación médica.', 'Apoyo diagnóstico para valoración cardiovascular y seguimiento clínico.', 'activity', 'Cardiología'],
-    ['holter', 'Holter', 'Monitoreo cardíaco ambulatorio según indicación médica.', 'Registro prolongado para apoyar la evaluación del ritmo cardíaco.', 'heart-pulse', 'Cardiología'],
-    ['control-presion-arterial', 'Control de presión arterial', 'Seguimiento sencillo y confiable de presión arterial.', 'Controles periódicos para pacientes con hipertensión o seguimiento preventivo.', 'gauge', 'Control'],
-    ['vacunas', 'Vacunas', 'Aplicación y orientación sobre esquemas de vacunación.', 'Registro de dosis, seguimiento y próximas aplicaciones según disponibilidad.', 'syringe', 'Prevención'],
-    ['toma-muestras-domicilio', 'Toma de muestras a domicilio', 'Servicio para pacientes que requieren toma de muestras en casa.', 'Coordinación de toma de muestras con comunicación por WhatsApp.', 'home', 'Domicilio'],
+    ['medicina-general', 'Medicina General', 'Atención médica integral para toda la familia.', 'Evaluación clínica, prevención y seguimiento personalizado.', 'stethoscope', 'Consulta'],
+    ['medicina-interna', 'Medicina Interna', 'Valoración integral del paciente adulto.', 'Diagnóstico y seguimiento de condiciones médicas complejas.', 'activity', 'Especialidad'],
+    ['ginecologia', 'Ginecología', 'Cuidado integral de la salud femenina.', 'Consulta, prevención y seguimiento ginecológico.', 'venus', 'Especialidad'],
+    ['neurologia-pediatrica', 'Neurología Pediátrica', 'Atención especializada para niñas, niños y adolescentes.', 'Valoración neurológica pediátrica con enfoque familiar.', 'brain', 'Especialidad'],
+    ['cirugia', 'Cirugía', 'Valoración quirúrgica y seguimiento clínico.', 'Evaluación y orientación según criterio médico.', 'scissors', 'Especialidad'],
+    ['ortopedia', 'Ortopedia', 'Evaluación de dolor, lesiones y movilidad.', 'Atención de condiciones musculoesqueléticas.', 'bone', 'Especialidad'],
+    ['odontologia', 'Odontología', 'Prevención y atención integral de la salud bucal.', 'Valoración y tratamientos odontológicos.', 'tooth', 'Especialidad'],
+    ['psicologia', 'Psicología', 'Acompañamiento profesional para el bienestar emocional.', 'Atención psicológica personalizada.', 'brain', 'Salud mental'],
+    ['cardiologia', 'Cardiología', 'Evaluación y seguimiento de la salud cardiovascular.', 'Consulta y apoyo diagnóstico cardiovascular.', 'heart-pulse', 'Especialidad'],
+    ['ultrasonido', 'Ultrasonidos', 'Estudios de imagen con atención profesional.', 'Ultrasonidos realizados con criterio clínico y atención cercana.', 'scan', 'Diagnóstico'],
+    ['sistema-orion', 'Sistema Orión', 'Gestión segura del expediente clínico.', 'Tecnología para organizar y proteger la información médica.', 'shield', 'Tecnología'],
   ] as const;
+
+  await prisma.publicService.updateMany({
+    where: { slug: { notIn: publicServices.map(([slug]) => slug) } },
+    data: { isActive: false },
+  });
 
   for (const [index, service] of publicServices.entries()) {
     const [slug, title, description, content, icon, category] = service;
@@ -781,6 +792,45 @@ async function main() {
       create: { slug, title, description, content, icon, category, isActive: true, sortOrder: index + 1, whatsappText: `Hola Clínica Keyser, quisiera información sobre ${title}.` },
     });
   }
+
+  const galleryImages = [
+    ['keyser-gallery-facade', 'Fachada', 'Fachada principal de Clínica Keyser', '/clinic-media/fachada.jpg', 'Fachada'],
+    ['keyser-gallery-reception', 'Recepción principal', 'Recepción y área de espera de Clínica Keyser', '/clinic-media/recepcion-principal.jpg', 'Recepción'],
+    ['keyser-gallery-consultation', 'Consulta médica', 'Atención médica personalizada en Clínica Keyser', '/clinic-media/consulta-medica.jpg', 'Consultorios'],
+    ['keyser-gallery-waiting', 'Área de espera', 'Área de espera de Clínica Keyser', '/clinic-media/sala-espera.jpg', 'Área de espera'],
+    ['keyser-gallery-specialties', 'Área de especialidades', 'Pasillo de consultorios y atención especializada', '/clinic-media/pasillo-laboratorio.jpg', 'Atención especializada'],
+    ['keyser-gallery-corridor', 'Instalaciones', 'Instalaciones interiores de Clínica Keyser', '/clinic-media/area-espera.jpg', 'Instalaciones'],
+  ] as const;
+
+  for (const [index, image] of galleryImages.entries()) {
+    const [id, title, altText, imageUrl, category] = image;
+    await prisma.publicGalleryImage.upsert({
+      where: { id },
+      update: { title, altText, imageUrl, category, isActive: true, sortOrder: index + 1 },
+      create: { id, title, altText, imageUrl, category, isActive: true, sortOrder: index + 1 },
+    });
+  }
+
+  await prisma.publicTeamMember.upsert({
+    where: { id: 'keyser-team-medical' },
+    update: {
+      name: 'Equipo médico Clínica Keyser',
+      specialty: 'Atención integral y especialidades médicas',
+      description: 'Profesionales comprometidos con una atención cercana, ética y personalizada.',
+      imageUrl: '/clinic-media/consulta-medica.jpg',
+      isActive: true,
+      sortOrder: 1,
+    },
+    create: {
+      id: 'keyser-team-medical',
+      name: 'Equipo médico Clínica Keyser',
+      specialty: 'Atención integral y especialidades médicas',
+      description: 'Profesionales comprometidos con una atención cercana, ética y personalizada.',
+      imageUrl: '/clinic-media/consulta-medica.jpg',
+      isActive: true,
+      sortOrder: 1,
+    },
+  });
 
   const publicPromotions = [
     ['dia-de-la-madre', 'Promociones del Día de la Madre', 'Campañas especiales para cuidar la salud de mamá.', 'Promoción demo administrable desde el panel privado.', 'Campañas', '2026-05-01', '2026-05-31'],

@@ -1420,24 +1420,31 @@ model ConsentDocument {
 }
 
 model PublicSiteSettings {
-  id             String   @id @default(cuid())
-  clinicName     String   @default("Clínica Keyser")
-  slogan         String   @default("Atención médica integral, cercana y confiable en Chinandega.")
-  logoUrl        String?
-  primaryPhone   String   @default("8495-2200")
-  aestheticPhone String   @default("7650-7993")
-  whatsapp       String   @default("50584952200")
-  address        String   @default("De Ferretería Luvy, 120 metros al norte, Chinandega, Nicaragua.")
-  schedule       String   @default("Lunes a sábado, horario según disponibilidad médica.")
-  mapEmbedUrl    String?
-  facebookUrl    String?
-  instagramUrl   String?
-  tiktokUrl      String?
-  primaryColor   String   @default("#1f2f66")
-  secondaryColor String   @default("#ef2f32")
-  accentColor    String   @default("#087f8c")
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id                    String   @id @default(cuid())
+  clinicName            String   @default("Clínica Keyser")
+  slogan                String   @default("Atención médica integral en Chinandega.")
+  logoUrl               String?
+  heroImageUrl          String?  @default("/clinic-media/fachada.jpg")
+  heroVideoUrl          String?
+  institutionalText     String   @default("Cuidamos de cada paciente con atención cercana, criterio médico y el respaldo de un equipo comprometido con su bienestar.")
+  institutionalImageUrl String?  @default("/clinic-media/consulta-medica.jpg")
+  primaryPhone          String   @default("8495-2200")
+  aestheticPhone        String   @default("7650-7993")
+  whatsapp              String   @default("50584952200")
+  address               String   @default("De Ferretería Luvy, 120 metros al norte, Chinandega, Nicaragua.")
+  schedule              String   @default("Lunes a sábado, horario según disponibilidad médica.")
+  mapEmbedUrl           String?
+  facebookUrl           String?
+  instagramUrl          String?
+  tiktokUrl             String?
+  aestheticFacebookUrl  String?
+  aestheticInstagramUrl String?
+  aestheticTiktokUrl    String?
+  primaryColor          String   @default("#1f2f66")
+  secondaryColor        String   @default("#ef2f32")
+  accentColor           String   @default("#087f8c")
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
 }
 
 model PublicService {
@@ -1513,6 +1520,37 @@ model PublicFAQ {
   @@index([isActive])
   @@index([sortOrder])
   @@index([category])
+}
+
+model PublicGalleryImage {
+  id        String   @id @default(cuid())
+  title     String
+  altText   String
+  imageUrl  String
+  category  String?
+  isActive  Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive])
+  @@index([sortOrder])
+  @@index([category])
+}
+
+model PublicTeamMember {
+  id          String   @id @default(cuid())
+  name        String
+  specialty   String
+  description String
+  imageUrl    String?
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([isActive])
+  @@index([sortOrder])
 }
 
 model PosSale {
