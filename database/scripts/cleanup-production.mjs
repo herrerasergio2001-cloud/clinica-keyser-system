@@ -44,6 +44,9 @@ async function main() {
 
   const admin = byEmail.get('admin@clinickeyser.com');
   const doctor = byEmail.get('doctor@clinicakeyser.com');
+  const doctorCode = doctor.doctorProfile?.minsaCode && !/DEMO|PENDIENTE/i.test(doctor.doctorProfile.minsaCode)
+    ? doctor.doctorProfile.minsaCode
+    : null;
   const keepEmails = new Set(keepAccounts.map((account) => account.email));
   const removedUsers = users.filter((user) => !keepEmails.has(user.email.toLowerCase()));
   const removedIds = removedUsers.map((user) => user.id);
@@ -88,13 +91,14 @@ async function main() {
       update: {
         fullName: 'Médico por evento Clínica Keyser',
         specialty: 'Médico por evento',
+        minsaCode: doctorCode,
         isActive: true,
       },
       create: {
         userId: doctor.id,
         fullName: 'Médico por evento Clínica Keyser',
         specialty: 'Médico por evento',
-        minsaCode: doctor.doctorProfile?.minsaCode ?? 'PENDIENTE',
+        minsaCode: doctorCode,
         isActive: true,
       },
     });

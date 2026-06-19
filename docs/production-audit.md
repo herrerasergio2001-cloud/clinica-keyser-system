@@ -100,10 +100,12 @@ Persistencia:
 
 Última verificación de datos:
 
-- Usuarios: 15.
-- Pacientes: 2.
-- Expedientes: 1.
-- Migraciones Prisma aplicadas: 5.
+- Usuarios activos: 5.
+- Pacientes demo: 0.
+- Productos demo: 0.
+- Plantillas de laboratorio demo: 0.
+- Migraciones Prisma aplicadas: 6.
+- Última limpieza controlada: 19 de junio de 2026.
 
 ## Almacenamiento de archivos
 
