@@ -1,6 +1,7 @@
 'use client';
 
 import { FormEvent, ReactNode, Suspense, useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AlertTriangle, Loader2, LockKeyhole } from 'lucide-react';
 import { apiBase, ensureAuthenticatedSession } from '../_components/api-client';
@@ -90,6 +91,9 @@ function LoginForm() {
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <LockKeyhole className="h-4 w-4" />}
             {loading ? 'Ingresando...' : 'Ingresar'}
           </button>
+          <Link href="/" className="inline-flex h-11 items-center justify-center rounded-md border border-slate-200 px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-100 dark:hover:bg-slate-800">
+            Volver al sitio principal
+          </Link>
         </form>
     </LoginShell>
   );

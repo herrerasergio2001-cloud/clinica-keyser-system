@@ -369,14 +369,16 @@ function List({ title, items }: { title: string; items: string[] }) {
 }
 
 async function loadAsset(url?: string | null, fallback = '') {
-  if (!url) return fallback;
-  if (!url.startsWith('/api/')) return url;
+  const source = url || fallback;
+  if (!source) return '';
+  if (source.startsWith('data:')) return source;
+  const absoluteUrl = typeof window !== 'undefined' ? new URL(source, window.location.origin).href : source;
   try {
-    const response = await authenticatedFetch(url);
-    if (!response.ok) return fallback;
+    const response = source.startsWith('/api/') ? await authenticatedFetch(source) : await fetch(absoluteUrl, { credentials: 'same-origin' });
+    if (!response.ok) return absoluteUrl;
     return await blobToDataUrl(await response.blob());
   } catch {
-    return fallback;
+    return absoluteUrl;
   }
 }
 
@@ -391,7 +393,7 @@ function blobToDataUrl(blob: Blob) {
 
 function prescriptionDocument(item: DigitalPrescription, settings: ClinicSettings | null, logo: string, signature: string) {
   const list = (values: string[]) => values.length ? `<ol>${values.map((value) => `<li>${escapeHtml(value)}</li>`).join('')}</ol>` : '<p>Sin registros</p>';
-  return `<!doctype html><html><head><meta charset="utf-8"><title>${escapeHtml(item.code)}</title><style>body{font-family:Arial,sans-serif;color:#0f172a;margin:0}.paper{max-width:760px;margin:auto;padding:42px}.head{display:flex;gap:20px;align-items:center;border-bottom:2px solid #ef2f32;padding-bottom:18px}.head img{width:78px;height:78px;object-fit:contain}.meta{display:flex;justify-content:space-between;margin-top:24px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:24px}.section{margin-top:24px}.section h3{border-bottom:1px solid #cbd5e1;padding-bottom:5px}.signature{text-align:center;margin-top:70px}.signature img{max-width:180px;max-height:65px}ol{padding-left:22px}p{white-space:pre-wrap}@media print{.paper{padding:18px}}</style></head><body><main class="paper"><header class="head"><img src="${logo || '/clinica-keyser-logo.jpg'}"><div><h1>${escapeHtml(settings?.clinicName ?? 'Clínica Keyser')}</h1><p>${escapeHtml(settings?.address ?? '')}</p><p>Teléfono: ${escapeHtml(settings?.phoneMain ?? '-')}</p></div></header><div class="meta"><div><h2>Receta médica</h2><p>Código: ${escapeHtml(item.code)}</p></div><div><p>${new Date(item.createdAt).toLocaleDateString('es-NI')}</p><p>${new Date(item.createdAt).toLocaleTimeString('es-NI')}</p></div></div><p><strong>Paciente:</strong> ${escapeHtml(item.patientName)} &nbsp; <strong>Edad:</strong> ${escapeHtml(item.patientAge ?? '-')}</p>${item.diagnosis ? `<section class="section"><h3>Diagnóstico</h3><p>${escapeHtml(item.diagnosis)}</p></section>` : ''}<div class="grid"><section class="section"><h3>Medicamentos</h3>${list(item.medications)}</section><section class="section"><h3>Estudios</h3>${list(item.studies)}</section></div>${item.indications ? `<section class="section"><h3>Indicaciones</h3><p>${escapeHtml(item.indications)}</p></section>` : ''}<footer class="signature">${signature ? `<img src="${signature}">` : ''}<p>__________________________________</p><strong>Dr(a). ${escapeHtml(item.doctorName)}</strong><p>Código profesional: ${escapeHtml(item.doctorCode)}</p></footer></main><script>window.addEventListener('load',()=>window.setTimeout(()=>window.print(),350));</script></body></html>`;
+  return `<!doctype html><html><head><meta charset="utf-8"><title>${escapeHtml(item.code)}</title><style>body{font-family:Arial,sans-serif;color:#0f172a;margin:0}.paper{max-width:760px;margin:auto;padding:42px}.head{display:flex;gap:20px;align-items:center;border-bottom:2px solid #ef2f32;padding-bottom:18px}.head img{width:78px;height:78px;object-fit:contain;display:block}.meta{display:flex;justify-content:space-between;margin-top:24px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:24px}.section{margin-top:24px}.section h3{border-bottom:1px solid #cbd5e1;padding-bottom:5px}.signature{text-align:center;margin-top:70px}.signature img{max-width:180px;max-height:65px;display:block;margin:0 auto 8px}ol{padding-left:22px}p{white-space:pre-wrap}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}.paper{padding:18px}.head img,.signature img{visibility:visible!important}}</style></head><body><main class="paper"><header class="head"><img src="${escapeHtml(logo || '/clinica-keyser-logo.jpg')}" alt="Logo Clínica Keyser"><div><h1>${escapeHtml(settings?.clinicName ?? 'Clínica Keyser')}</h1><p>${escapeHtml(settings?.address ?? '')}</p><p>Teléfono: ${escapeHtml(settings?.phoneMain ?? '-')}</p></div></header><div class="meta"><div><h2>Receta médica</h2><p>Código: ${escapeHtml(item.code)}</p></div><div><p>${new Date(item.createdAt).toLocaleDateString('es-NI')}</p><p>${new Date(item.createdAt).toLocaleTimeString('es-NI')}</p></div></div><p><strong>Paciente:</strong> ${escapeHtml(item.patientName)} &nbsp; <strong>Edad:</strong> ${escapeHtml(item.patientAge ?? '-')}</p>${item.diagnosis ? `<section class="section"><h3>Diagnóstico</h3><p>${escapeHtml(item.diagnosis)}</p></section>` : ''}<div class="grid"><section class="section"><h3>Medicamentos</h3>${list(item.medications)}</section><section class="section"><h3>Estudios</h3>${list(item.studies)}</section></div>${item.indications ? `<section class="section"><h3>Indicaciones</h3><p>${escapeHtml(item.indications)}</p></section>` : ''}<footer class="signature">${signature ? `<img src="${escapeHtml(signature)}" alt="Firma digital">` : ''}<p>__________________________________</p><strong>Dr(a). ${escapeHtml(item.doctorName)}</strong><p>Código profesional: ${escapeHtml(item.doctorCode)}</p></footer></main><script>(async()=>{const images=Array.from(document.images);await Promise.all(images.map(async(img)=>{try{if(img.decode) await img.decode();}catch(error){} if(img.complete&&img.naturalWidth>0) return; await new Promise((resolve)=>{img.addEventListener('load',resolve,{once:true});img.addEventListener('error',resolve,{once:true});});}));await new Promise((resolve)=>setTimeout(resolve,150));window.focus();window.print();})();</script></body></html>`;
 }
 
 function escapeHtml(value: string) {
