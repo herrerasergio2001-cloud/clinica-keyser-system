@@ -5,6 +5,11 @@ import { CurrentUser } from '../../shared/decorators/current-user.decorator';
 import { SafeDeleteDto } from '../../shared/dto/safe-delete.dto';
 import { PrismaService } from '../../shared/prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
+import { CreateAnalyteDto, UpdateAnalyteDto } from './dto/analyte.dto';
+import { CreateLabOrderDto, UpdateLabOrderDto } from './dto/create-order.dto';
+import { CreateReagentDto, ReagentMovementDto } from './dto/create-reagent.dto';
+import { CreateResultDto } from './dto/create-result.dto';
+import { CreateTemplateDto } from './dto/create-template.dto';
 
 @Injectable()
 export class LaboratoryService {
@@ -34,13 +39,13 @@ export class LaboratoryService {
     });
   }
 
-  async createOrder(data: Prisma.LabOrderUncheckedCreateInput, actor: CurrentUser) {
-    const order = await this.prisma.labOrder.create({ data: { ...data, doctorId: data.doctorId ?? actor.sub, createdById: actor.sub, updatedById: actor.sub }, include: { patient: true } });
+  async createOrder(data: CreateLabOrderDto, actor: CurrentUser) {
+    const order = await this.prisma.labOrder.create({ data: { ...data, doctorId: data.doctorId ?? actor.sub, createdById: actor.sub, updatedById: actor.sub } as Prisma.LabOrderUncheckedCreateInput, include: { patient: true } });
     await this.audit.record({ actorId: actor.sub, action: AuditAction.CREATE, entity: 'LabOrder', entityId: order.id, after: order });
     return order;
   }
 
-  updateOrder(id: string, data: Prisma.LabOrderUncheckedUpdateInput) {
+  updateOrder(id: string, data: UpdateLabOrderDto) {
     return this.prisma.labOrder.update({ where: { id }, data, include: { patient: true } });
   }
 
@@ -99,21 +104,21 @@ export class LaboratoryService {
     return this.prisma.labTemplate.findMany({ where: { isDeleted: false }, include: { analytes: { orderBy: { sortOrder: 'asc' } } }, orderBy: { name: 'asc' } });
   }
 
-  createTemplate(data: Prisma.LabTemplateUncheckedCreateInput, actor: CurrentUser) {
-    return this.prisma.labTemplate.create({ data }).then(async (template) => {
+  createTemplate(data: CreateTemplateDto, actor: CurrentUser) {
+    return this.prisma.labTemplate.create({ data: data as Prisma.LabTemplateUncheckedCreateInput }).then(async (template) => {
       await this.audit.record({ actorId: actor.sub, action: AuditAction.CREATE, entity: 'LabTemplate', entityId: template.id, after: template });
       return template;
     });
   }
 
-  upsertAnalyte(templateId: string, data: Prisma.LabAnalyteUncheckedCreateInput, actor: CurrentUser) {
+  upsertAnalyte(templateId: string, data: CreateAnalyteDto, actor: CurrentUser) {
     return this.prisma.labAnalyte.create({ data: { ...data, templateId } }).then(async (analyte) => {
       await this.audit.record({ actorId: actor.sub, action: AuditAction.UPDATE, entity: 'LabAnalyte', entityId: analyte.id, after: analyte });
       return analyte;
     });
   }
 
-  async updateAnalyte(id: string, data: Prisma.LabAnalyteUncheckedUpdateInput, actor: CurrentUser) {
+  async updateAnalyte(id: string, data: UpdateAnalyteDto, actor: CurrentUser) {
     const before = await this.prisma.labAnalyte.findUnique({ where: { id } });
     if (!before) throw new NotFoundException('Analyte not found');
     const analyte = await this.prisma.labAnalyte.update({ where: { id }, data });
@@ -125,7 +130,7 @@ export class LaboratoryService {
     return this.prisma.labResult.findUnique({ where: { id }, include: { patient: true, order: true, template: { include: { analytes: { orderBy: { sortOrder: 'asc' } } } }, values: { include: { analyte: true } } } });
   }
 
-  async createResult(data: { orderId?: string; patientId: string; templateId: string; medicalRecordId?: string; observations?: string; values: Array<{ analyteId: string; value: string }> }, actor: CurrentUser) {
+  async createResult(data: CreateResultDto, actor: CurrentUser) {
     const template = await this.prisma.labTemplate.findUnique({ where: { id: data.templateId }, include: { analytes: true } });
     if (!template) throw new NotFoundException('Template not found');
     const analytes = new Map(template.analytes.map((item) => [item.id, item]));
@@ -169,7 +174,7 @@ export class LaboratoryService {
     return this.prisma.labReagent.findMany({ where: { isDeleted: false }, include: { movements: { orderBy: { createdAt: 'desc' }, take: 10 } }, orderBy: { name: 'asc' } });
   }
 
-  async createReagent(data: Prisma.LabReagentUncheckedCreateInput, actor: CurrentUser) {
+  async createReagent(data: CreateReagentDto, actor: CurrentUser) {
     const reagent = await this.prisma.labReagent.create({ data });
     await this.audit.record({ actorId: actor.sub, action: AuditAction.CREATE, entity: 'LabReagent', entityId: reagent.id, after: reagent });
     return reagent;
@@ -183,7 +188,7 @@ export class LaboratoryService {
     return reagent;
   }
 
-  async reagentMovement(reagentId: string, data: { type: string; quantity: number; observation?: string }, actor: CurrentUser) {
+  async reagentMovement(reagentId: string, data: ReagentMovementDto, actor: CurrentUser) {
     const sign = data.type === 'ENTRY' ? 1 : -1;
     const movement = await this.prisma.$transaction(async (tx) => {
       const reagent = await tx.labReagent.findUnique({ where: { id: reagentId } });
