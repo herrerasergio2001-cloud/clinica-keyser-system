@@ -1,6 +1,7 @@
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { NestFactory } from '@nestjs/core';
+import { NestFactory, Reflector } from '@nestjs/core';
+import { ThrottlerGuard } from '@nestjs/throttler';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
@@ -15,6 +16,7 @@ async function bootstrap() {
 
   app.use(cookieParser());
   app.use(helmet());
+  app.useGlobalGuards(new ThrottlerGuard(app.get('THROTTLER:MODULE_OPTIONS'), app.get('ThrottlerStorage'), new Reflector()));
   app.enableCors({
     origin: corsOrigins,
     credentials: true,

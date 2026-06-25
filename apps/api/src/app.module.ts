@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { seconds, ThrottlerModule } from '@nestjs/throttler';
 import { AuthModule } from './modules/auth/auth.module';
 import { PatientsModule } from './modules/patients/patients.module';
 import { UsersModule } from './modules/users/users.module';
@@ -16,6 +17,10 @@ import { DigitalPrescriptionsModule } from './modules/digital-prescriptions/digi
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    ThrottlerModule.forRoot([
+      { name: 'short', ttl: seconds(1), limit: 10 },
+      { name: 'medium', ttl: seconds(60), limit: 100 },
+    ]),
     PrismaModule,
     StorageModule,
     AuditModule,

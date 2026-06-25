@@ -1,4 +1,5 @@
 import { Body, Controller, Get, Ip, Post, Req, Res, UseGuards } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { Request, Response } from 'express';
 import { CurrentUser } from '../../shared/decorators/current-user.decorator';
 import { AuthService } from './auth.service';
@@ -11,6 +12,7 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('login')
+  @Throttle({ short: { ttl: 60_000, limit: 5 }, medium: { ttl: 900_000, limit: 20 } })
   async login(@Body() dto: LoginDto, @Ip() ipAddress: string, @Req() request: Request, @Res({ passthrough: true }) response: Response) {
     const tokens = await this.authService.login(dto, ipAddress, request.headers['user-agent']);
     this.authService.setAuthCookies(response, tokens);
