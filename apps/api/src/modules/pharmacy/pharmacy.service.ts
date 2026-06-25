@@ -4,6 +4,11 @@ import { CurrentUser } from '../../shared/decorators/current-user.decorator';
 import { SafeDeleteDto } from '../../shared/dto/safe-delete.dto';
 import { PrismaService } from '../../shared/prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
+import { CreateBatchDto } from './dto/create-batch.dto';
+import { CreateProductDto } from './dto/create-product.dto';
+import { CreateSaleDto } from './dto/create-sale.dto';
+import { MovementDto } from './dto/movement.dto';
+import { UpdateProductDto } from './dto/update-product.dto';
 
 @Injectable()
 export class PharmacyService {
@@ -46,13 +51,13 @@ export class PharmacyService {
     return this.prisma.product.findUnique({ where: { id }, include: { batches: { where: { isDeleted: false }, orderBy: { expiresAt: 'asc' } }, movements: { orderBy: { createdAt: 'desc' }, take: 30 } } });
   }
 
-  async createProduct(data: Prisma.ProductUncheckedCreateInput, actor: CurrentUser) {
-    const product = await this.prisma.product.create({ data, include: { batches: true } });
+  async createProduct(data: CreateProductDto, actor: CurrentUser) {
+    const product = await this.prisma.product.create({ data: data as Prisma.ProductUncheckedCreateInput, include: { batches: true } });
     await this.audit.record({ actorId: actor.sub, action: AuditAction.CREATE, entity: 'Product', entityId: product.id, after: product });
     return product;
   }
 
-  async updateProduct(id: string, data: Prisma.ProductUncheckedUpdateInput, actor: CurrentUser) {
+  async updateProduct(id: string, data: UpdateProductDto, actor: CurrentUser) {
     const before = await this.product(id);
     if (!before) throw new NotFoundException('Product not found');
     const product = await this.prisma.product.update({ where: { id }, data, include: { batches: true } });
@@ -80,12 +85,12 @@ export class PharmacyService {
     return product;
   }
 
-  async addBatch(productId: string, data: Prisma.ProductBatchUncheckedCreateInput, actor: CurrentUser) {
+  async addBatch(productId: string, data: CreateBatchDto, actor: CurrentUser) {
     const product = await this.prisma.product.findUnique({ where: { id: productId } });
     if (!product) throw new NotFoundException('Product not found');
     const before = product.quantity;
     const batch = await this.prisma.$transaction(async (tx) => {
-      const created = await tx.productBatch.create({ data: { ...data, productId } });
+      const created = await tx.productBatch.create({ data: { ...(data as Prisma.ProductBatchUncheckedCreateInput), productId } });
       const updated = await tx.product.update({ where: { id: productId }, data: { quantity: { increment: created.availableQuantity } } });
       await tx.inventoryMovement.create({
         data: {
@@ -121,7 +126,7 @@ export class PharmacyService {
     return this.prisma.inventoryMovement.findMany({ where: productId ? { productId } : undefined, include: { product: true, batch: true }, orderBy: { createdAt: 'desc' }, take: 200 });
   }
 
-  async movement(data: { productId: string; batchId?: string; type: InventoryMovementType; quantity: number; observation?: string }, actor: CurrentUser) {
+  async movement(data: MovementDto, actor: CurrentUser) {
     const product = await this.prisma.product.findUnique({ where: { id: data.productId } });
     if (!product) throw new NotFoundException('Product not found');
     const sign = data.type === InventoryMovementType.PURCHASE || data.type === InventoryMovementType.RETURN ? 1 : -1;
@@ -138,7 +143,7 @@ export class PharmacyService {
     return movement;
   }
 
-  async sale(data: { patientId?: string; discount?: number; items: Array<{ productId: string; quantity: number; discount?: number }> }, actor: CurrentUser) {
+  async sale(data: CreateSaleDto, actor: CurrentUser) {
     if (!data.items?.length) throw new BadRequestException('Cart is empty');
     const products = await this.prisma.product.findMany({ where: { id: { in: data.items.map((item) => item.productId) }, isDeleted: false, status: 'ACTIVE' }, include: { batches: { where: { isDeleted: false, availableQuantity: { gt: 0 }, expiresAt: { gt: new Date() } }, orderBy: { expiresAt: 'asc' } } } });
     const byId = new Map(products.map((product) => [product.id, product]));

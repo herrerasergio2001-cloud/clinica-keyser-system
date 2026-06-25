@@ -1,5 +1,4 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
-import { InventoryMovementType, Prisma } from '@prisma/client';
 import { CurrentUser } from '../../shared/decorators/current-user.decorator';
 import { Permissions } from '../../shared/decorators/permissions.decorator';
 import { Roles } from '../../shared/decorators/roles.decorator';
@@ -7,6 +6,11 @@ import { SafeDeleteDto } from '../../shared/dto/safe-delete.dto';
 import { PermissionsGuard } from '../../shared/guards/permissions.guard';
 import { RolesGuard } from '../../shared/guards/roles.guard';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { CreateBatchDto } from './dto/create-batch.dto';
+import { CreateProductDto } from './dto/create-product.dto';
+import { CreateSaleDto } from './dto/create-sale.dto';
+import { MovementDto } from './dto/movement.dto';
+import { UpdateProductDto } from './dto/update-product.dto';
 import { PharmacyService } from './pharmacy.service';
 
 @UseGuards(JwtAuthGuard, PermissionsGuard, RolesGuard)
@@ -35,15 +39,15 @@ export class PharmacyController {
   @Post('pharmacy/products')
   @Roles('SUPER_ADMIN', 'PHARMACY')
   @Permissions('pharmacy:*', 'inventory:*', '*')
-  createProduct(@Body() body: Prisma.ProductUncheckedCreateInput, @CurrentUser() user: CurrentUser) {
-    return this.pharmacy.createProduct(body, user);
+  createProduct(@Body() dto: CreateProductDto, @CurrentUser() user: CurrentUser) {
+    return this.pharmacy.createProduct(dto, user);
   }
 
   @Patch('pharmacy/products/:id')
   @Roles('SUPER_ADMIN', 'PHARMACY')
   @Permissions('pharmacy:*', 'inventory:*', '*')
-  updateProduct(@Param('id') id: string, @Body() body: Prisma.ProductUncheckedUpdateInput, @CurrentUser() user: CurrentUser) {
-    return this.pharmacy.updateProduct(id, body, user);
+  updateProduct(@Param('id') id: string, @Body() dto: UpdateProductDto, @CurrentUser() user: CurrentUser) {
+    return this.pharmacy.updateProduct(id, dto, user);
   }
 
   @Delete('pharmacy/products/:id')
@@ -70,8 +74,8 @@ export class PharmacyController {
   @Post('pharmacy/products/:id/batches')
   @Roles('SUPER_ADMIN', 'PHARMACY')
   @Permissions('pharmacy:*', 'inventory:*', '*')
-  addBatch(@Param('id') id: string, @Body() body: Prisma.ProductBatchUncheckedCreateInput, @CurrentUser() user: CurrentUser) {
-    return this.pharmacy.addBatch(id, body, user);
+  addBatch(@Param('id') id: string, @Body() dto: CreateBatchDto, @CurrentUser() user: CurrentUser) {
+    return this.pharmacy.addBatch(id, dto, user);
   }
 
   @Get('inventory/batches')
@@ -95,15 +99,15 @@ export class PharmacyController {
   @Post('inventory/movements')
   @Roles('SUPER_ADMIN', 'PHARMACY')
   @Permissions('pharmacy:*', 'inventory:*', '*')
-  movement(@Body() body: { productId: string; batchId?: string; type: InventoryMovementType; quantity: number; observation?: string }, @CurrentUser() user: CurrentUser) {
-    return this.pharmacy.movement(body, user);
+  movement(@Body() dto: MovementDto, @CurrentUser() user: CurrentUser) {
+    return this.pharmacy.movement(dto, user);
   }
 
   @Post('pharmacy/sales')
   @Roles('SUPER_ADMIN', 'PHARMACY')
   @Permissions('pharmacy:*', '*')
-  sale(@Body() body: { patientId?: string; discount?: number; items: Array<{ productId: string; quantity: number; discount?: number }> }, @CurrentUser() user: CurrentUser) {
-    return this.pharmacy.sale(body, user);
+  sale(@Body() dto: CreateSaleDto, @CurrentUser() user: CurrentUser) {
+    return this.pharmacy.sale(dto, user);
   }
 
   @Patch('pharmacy/sales/:id/void')
