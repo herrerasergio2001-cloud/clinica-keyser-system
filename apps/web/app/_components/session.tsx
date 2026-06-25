@@ -63,20 +63,11 @@ const baseNav = [
   { label: 'Página pública', href: '/admin/pagina-publica', icon: Settings, roles: ['SUPER_ADMIN'] },
 ];
 
-export function decodeSession(): SessionUser | null {
-  if (typeof window === 'undefined') return null;
-  const token = localStorage.getItem('accessToken');
-  if (!token) return null;
+export async function fetchSession(): Promise<SessionUser | null> {
   try {
-    const payload = JSON.parse(atob(token.split('.')[1] ?? ''));
-    return {
-      id: payload.sub,
-      email: payload.email,
-      role: payload.role,
-      permissions: payload.permissions ?? [],
-      name: payload.name ?? payload.fullName ?? payload.email,
-      minsaCode: payload.minsaCode,
-    };
+    const response = await fetch(`${apiBase}/api/auth/me`, { credentials: 'include' });
+    if (!response.ok) return null;
+    return (await response.json()) as SessionUser;
   } catch {
     return null;
   }
@@ -84,23 +75,18 @@ export function decodeSession(): SessionUser | null {
 
 export function useSession() {
   const [user, setUser] = useState<SessionUser | null>(null);
-  useEffect(() => setUser(decodeSession()), []);
+  useEffect(() => {
+    void fetchSession().then(setUser);
+  }, []);
   return user;
 }
 
 export function signOut(router: ReturnType<typeof useRouter>, message = 'Sesión cerrada correctamente') {
-  const refreshToken = localStorage.getItem('refreshToken');
-  const accessToken = localStorage.getItem('accessToken');
-  if (refreshToken && accessToken) {
-    void fetch(`${apiBase}/api/auth/logout`, {
-      method: 'POST',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
-      body: JSON.stringify({ refreshToken }),
-    }).catch(() => undefined);
-  }
-  localStorage.removeItem('accessToken');
-  localStorage.removeItem('refreshToken');
+  void fetch(`${apiBase}/api/auth/logout`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+  }).catch(() => undefined);
   sessionStorage.setItem('sessionMessage', message);
   router.replace('/login');
 }
@@ -135,9 +121,14 @@ export function ProtectedModule({ module, children }: { module: string; children
 
   useEffect(() => {
     let active = true;
-    void ensureAuthenticatedSession().then((authenticated) => {
+    void ensureAuthenticatedSession().then(async (authenticated) => {
       if (!active) return;
-      const session = authenticated ? decodeSession() : null;
+      if (!authenticated) {
+        router.replace(`/login?next=${encodeURIComponent(window.location.pathname)}`);
+        return;
+      }
+      const session = await fetchSession();
+      if (!active) return;
       if (!session) {
         router.replace(`/login?next=${encodeURIComponent(window.location.pathname)}`);
         return;

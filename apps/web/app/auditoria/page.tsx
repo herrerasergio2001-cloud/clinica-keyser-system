@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { Search, ShieldCheck } from 'lucide-react';
 import { AppSidebar, ProtectedModule, UserMenu } from '../_components/session';
 
-const apiBase = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
+import { authenticatedFetch } from '../_components/api-client';
 
 type AuditEntry = {
   id: string;
@@ -27,10 +27,9 @@ export default function AuditPage() {
   }, []);
 
   async function load() {
-    const token = localStorage.getItem('accessToken');
     const params = new URLSearchParams();
     if (search.trim()) params.set('search', search.trim());
-    const response = await fetch(`${apiBase}/api/audit?${params}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+    const response = await authenticatedFetch(`/api/audit?${params}`);
     if (!response.ok) {
       setError('No se pudo cargar la auditoría');
       return;

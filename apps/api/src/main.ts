@@ -1,6 +1,7 @@
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
+import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
 
@@ -12,6 +13,7 @@ async function bootstrap() {
     .map((origin) => origin.trim())
     .filter(Boolean);
 
+  app.use(cookieParser());
   app.use(helmet());
   app.enableCors({
     origin: corsOrigins,

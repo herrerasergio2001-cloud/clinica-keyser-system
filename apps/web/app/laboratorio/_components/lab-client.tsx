@@ -5,20 +5,14 @@ import { useRouter } from 'next/navigation';
 import { FormEvent, useEffect, useState } from 'react';
 import { ArrowLeft, Beaker, ClipboardList, Download, FilePlus2, FlaskConical, Home, Printer, Save, TestTube2, Trash2, XCircle } from 'lucide-react';
 import { MasterActionMenu } from '../../_components/master-action-menu';
-import { AppSidebar, ProtectedModule, UserMenu, decodeSession } from '../../_components/session';
-
-const apiBase = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
+import { AppSidebar, ProtectedModule, UserMenu, useSession } from '../../_components/session';
+import { apiBase, authenticatedFetch, jsonHeaders } from '../../_components/api-client';
 
 type Patient = { id: string; fullName: string; patientCode: string; gender: string; birthDate: string };
 type Order = { id: string; patient: Patient; orderType: string; priority: string; status: string; createdAt: string; observations?: string };
 type Template = { id: string; name: string; category: string; analytes: Analyte[] };
 type Analyte = { id: string; name: string; unit?: string; referenceText?: string; referenceMin?: string; referenceMax?: string };
 type Reagent = { id: string; name: string; brand?: string; batchNumber?: string; expiresAt?: string; quantity: string; unit?: string; minimumStock: string };
-
-function headers(json = true): HeadersInit {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
-  return { ...(json ? { 'Content-Type': 'application/json' } : {}), ...(token ? { Authorization: `Bearer ${token}` } : {}) };
-}
 
 function printLabResult(order: Order | undefined, template: Template | undefined, values: Record<string, string>) {
   try {
@@ -34,9 +28,8 @@ function printLabResult(order: Order | undefined, template: Template | undefined
 }
 
 async function api<T>(path: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(`${apiBase}${path}`, options);
+  const res = await authenticatedFetch(path, options);
   if (res.status === 401) {
-    localStorage.removeItem('accessToken');
     window.location.href = '/login?next=/laboratorio';
     throw new Error('Unauthorized');
   }
@@ -44,14 +37,10 @@ async function api<T>(path: string, options?: RequestInit): Promise<T> {
   return res.json();
 }
 
-function useAuthRedirect() {
-  const router = useRouter();
-  useEffect(() => { if (!localStorage.getItem('accessToken')) router.replace('/login?next=/laboratorio'); }, [router]);
-}
-
 function Shell({ title, children }: { title: string; children: React.ReactNode }) {
   const router = useRouter();
-  const role = decodeSession()?.role;
+  const session = useSession();
+  const role = session?.role;
   const labActions = role === 'RECEPTION' ? [
     { label: 'Nueva orden', icon: ClipboardList, onClick: () => router.push('/laboratorio/ordenes/nueva') },
   ] : [
@@ -106,9 +95,9 @@ function Shell({ title, children }: { title: string; children: React.ReactNode }
 }
 
 export function LabDashboard() {
-  useAuthRedirect();
+
   const [data, setData] = useState<any>();
-  useEffect(() => void api('/api/laboratory/dashboard', { headers: headers(false) }).then(setData).catch(() => undefined), []);
+  useEffect(() => void api('/api/laboratory/dashboard', {}).then(setData).catch(() => undefined), []);
   return <Shell title="Panel"><div className="grid gap-4 md:grid-cols-4"><Metric icon={ClipboardList} label="Órdenes" value={data?.orders ?? '...'} /><Metric icon={TestTube2} label="Urgentes" value={data?.urgent ?? '...'} /><Metric icon={Beaker} label="Alertas reactivos" value={data?.reagents?.length ?? '...'} /><Link href="/laboratorio/ordenes/nueva" className="rounded-lg bg-clinic-teal p-4 text-white"><FilePlus2 className="mb-2 h-5 w-5" />Nueva orden</Link></div><OrderList orders={data?.recent ?? []} /></Shell>;
 }
 
@@ -117,24 +106,25 @@ function Metric({ icon: Icon, label, value }: { icon: React.ComponentType<{ clas
 }
 
 export function OrdersPage() {
-  useAuthRedirect();
+
   const [orders, setOrders] = useState<Order[]>([]);
   const [status, setStatus] = useState<'active' | 'cancelled' | 'all'>('active');
-  const isAdmin = decodeSession()?.role === 'SUPER_ADMIN';
-  const load = () => api<Order[]>(`/api/laboratory/orders?status=${status}`, { headers: headers(false) }).then(setOrders).catch(() => undefined);
+  const session = useSession();
+  const isAdmin = session?.role === 'SUPER_ADMIN';
+  const load = () => api<Order[]>(`/api/laboratory/orders?status=${status}`, {}).then(setOrders).catch(() => undefined);
   useEffect(() => void load(), [status]);
   async function cancel(order: Order) {
     if (!window.confirm(`¿Anular la orden de ${order.patient.fullName}?`)) return;
     const reason = window.prompt('Motivo de anulación:');
     if (!reason?.trim()) return;
-    await api(`/api/laboratory/orders/${order.id}/cancel`, { method: 'PATCH', headers: headers(), body: JSON.stringify({ reason }) });
+    await api(`/api/laboratory/orders/${order.id}/cancel`, { method: 'PATCH', headers: jsonHeaders(), body: JSON.stringify({ reason }) });
     await load();
   }
   async function deleteOrder(order: Order) {
     if (!window.confirm(`¿Eliminar definitivamente la orden de ${order.patient.fullName}? Esta acción no se puede deshacer.`)) return;
     const reason = window.prompt('Motivo de eliminación definitiva:');
     if (!reason?.trim()) return;
-    await api(`/api/laboratory/orders/${order.id}`, { method: 'DELETE', headers: headers(), body: JSON.stringify({ reason }) });
+    await api(`/api/laboratory/orders/${order.id}`, { method: 'DELETE', headers: jsonHeaders(), body: JSON.stringify({ reason }) });
     await load();
   }
   return <Shell title="Órdenes"><div className="flex justify-end"><select value={status} onChange={(event) => setStatus(event.target.value as typeof status)} className="h-10 rounded-md border bg-white px-3 text-sm dark:bg-slate-950"><option value="active">Activas</option><option value="cancelled">Anuladas</option><option value="all">Todas</option></select></div><OrderList orders={orders} onCancel={isAdmin ? cancel : undefined} onDelete={isAdmin ? deleteOrder : undefined} /></Shell>;
@@ -145,12 +135,12 @@ function OrderList({ orders, onCancel, onDelete }: { orders: Order[]; onCancel?:
 }
 
 export function NewOrderPage() {
-  useAuthRedirect();
+
   const router = useRouter();
   const [patients, setPatients] = useState<Patient[]>([]);
   const [form, setForm] = useState({ patientId: '', orderType: 'Biometría hemática', priority: 'NORMAL', status: 'REQUESTED', observations: '' });
   const [message, setMessage] = useState('');
-  useEffect(() => void api<{ data: Patient[] }>('/api/patients', { headers: headers(false) }).then((r) => setPatients(r.data ?? [])).catch(() => undefined), []);
+  useEffect(() => void api<{ data: Patient[] }>('/api/patients', {}).then((r) => setPatients(r.data ?? [])).catch(() => undefined), []);
   async function save(event: FormEvent) {
     event.preventDefault();
     if (!form.patientId) {
@@ -158,7 +148,7 @@ export function NewOrderPage() {
       return;
     }
     setMessage('Guardando orden...');
-    await api('/api/laboratory/orders', { method: 'POST', headers: headers(), body: JSON.stringify(form) });
+    await api('/api/laboratory/orders', { method: 'POST', headers: jsonHeaders(), body: JSON.stringify(form) });
     setMessage('Orden creada correctamente');
     window.setTimeout(() => router.push('/laboratorio/ordenes'), 500);
   }
@@ -166,21 +156,21 @@ export function NewOrderPage() {
 }
 
 export function ResultPage({ orderId }: { orderId: string }) {
-  useAuthRedirect();
+
   const [orders, setOrders] = useState<Order[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [templateId, setTemplateId] = useState('');
   const [values, setValues] = useState<Record<string, string>>({});
   const [result, setResult] = useState<any>();
   const [message, setMessage] = useState('');
-  useEffect(() => { void api<Order[]>('/api/laboratory/orders', { headers: headers(false) }).then(setOrders); void api<Template[]>('/api/laboratory/templates', { headers: headers(false) }).then((t) => { setTemplates(t); setTemplateId(t[0]?.id ?? ''); }); }, []);
+  useEffect(() => { void api<Order[]>('/api/laboratory/orders', {}).then(setOrders); void api<Template[]>('/api/laboratory/templates', {}).then((t) => { setTemplates(t); setTemplateId(t[0]?.id ?? ''); }); }, []);
   const order = orders.find((o) => o.id === orderId);
   const template = templates.find((t) => t.id === templateId);
   async function save() {
     if (!order || !template) return;
     setMessage('Guardando resultado...');
     try {
-      const saved = await api('/api/laboratory/results', { method: 'POST', headers: headers(), body: JSON.stringify({ orderId, patientId: order.patient.id, templateId, values: template.analytes.map((a) => ({ analyteId: a.id, value: values[a.id] ?? '' })) }) });
+      const saved = await api('/api/laboratory/results', { method: 'POST', headers: jsonHeaders(), body: JSON.stringify({ orderId, patientId: order.patient.id, templateId, values: template.analytes.map((a) => ({ analyteId: a.id, value: values[a.id] ?? '' })) }) });
       setResult(saved);
       setMessage('Resultado guardado correctamente');
     } catch {
@@ -191,10 +181,10 @@ export function ResultPage({ orderId }: { orderId: string }) {
 }
 
 export function TemplatesPage() {
-  useAuthRedirect();
+
   const [templates, setTemplates] = useState<Template[]>([]);
   const [message, setMessage] = useState('');
-  const load = () => api<Template[]>('/api/laboratory/templates', { headers: headers(false) }).then(setTemplates).catch(() => undefined);
+  const load = () => api<Template[]>('/api/laboratory/templates', {}).then(setTemplates).catch(() => undefined);
   useEffect(() => void load(), []);
   async function editAnalyte(analyte: Analyte) {
     const min = window.prompt(`Valor mínimo para ${analyte.name}`, analyte.referenceMin ?? '');
@@ -205,7 +195,7 @@ export function TemplatesPage() {
     if (unit === null) return;
     setMessage('Guardando valor de referencia...');
     try {
-      await api(`/api/laboratory/analytes/${analyte.id}`, { method: 'PATCH', headers: headers(), body: JSON.stringify({ referenceMin: min === '' ? null : Number(min), referenceMax: max === '' ? null : Number(max), unit }) });
+      await api(`/api/laboratory/analytes/${analyte.id}`, { method: 'PATCH', headers: jsonHeaders(), body: JSON.stringify({ referenceMin: min === '' ? null : Number(min), referenceMax: max === '' ? null : Number(max), unit }) });
       await load();
       setMessage('Valor de referencia guardado correctamente');
     } catch {
@@ -216,18 +206,18 @@ export function TemplatesPage() {
 }
 
 export function ReagentsPage({ expiring = false }: { expiring?: boolean }) {
-  useAuthRedirect();
+
   const [items, setItems] = useState<Reagent[]>([]);
   const [form, setForm] = useState<any>({ name: '', brand: '', presentation: '', batchNumber: '', expiresAt: '', quantity: 0, unit: '', equipment: '', associatedTest: '', minimumStock: 0, observations: '' });
   const [message, setMessage] = useState('');
   const path = expiring ? '/api/laboratory/reagents/expirations?days=90' : '/api/laboratory/reagents';
-  useEffect(() => void api<Reagent[]>(path, { headers: headers(false) }).then(setItems).catch(() => undefined), [path]);
-  async function save(e: FormEvent) { e.preventDefault(); setMessage('Guardando reactivo...'); await api('/api/laboratory/reagents', { method: 'POST', headers: headers(), body: JSON.stringify(form) }); setMessage('Reactivo guardado correctamente'); window.setTimeout(() => window.location.reload(), 500); }
+  useEffect(() => void api<Reagent[]>(path, {}).then(setItems).catch(() => undefined), [path]);
+  async function save(e: FormEvent) { e.preventDefault(); setMessage('Guardando reactivo...'); await api('/api/laboratory/reagents', { method: 'POST', headers: jsonHeaders(), body: JSON.stringify(form) }); setMessage('Reactivo guardado correctamente'); window.setTimeout(() => window.location.reload(), 500); }
   async function move(reagent: Reagent, type: string) {
     const quantity = Number(window.prompt('Ingrese cantidad', '1') ?? 0);
     if (!quantity) return;
     setMessage('Registrando movimiento...');
-    await api(`/api/laboratory/reagents/${reagent.id}/movements`, { method: 'POST', headers: headers(), body: JSON.stringify({ type, quantity, observation: movementLabel(type) }) });
+    await api(`/api/laboratory/reagents/${reagent.id}/movements`, { method: 'POST', headers: jsonHeaders(), body: JSON.stringify({ type, quantity, observation: movementLabel(type) }) });
     setMessage('Movimiento guardado correctamente');
     window.setTimeout(() => window.location.reload(), 500);
   }

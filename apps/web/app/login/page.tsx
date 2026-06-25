@@ -4,7 +4,7 @@ import { FormEvent, ReactNode, Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AlertTriangle, Loader2, LockKeyhole } from 'lucide-react';
-import { apiBase, ensureAuthenticatedSession } from '../_components/api-client';
+import { apiBase } from '../_components/api-client';
 
 export default function LoginPage() {
   return (
@@ -30,11 +30,9 @@ function LoginForm() {
       setMessage(sessionMessage);
       sessionStorage.removeItem('sessionMessage');
     }
-    if (localStorage.getItem('accessToken') || localStorage.getItem('refreshToken')) {
-      void ensureAuthenticatedSession().then((valid) => {
-        if (valid) router.replace(next);
-      });
-    }
+    void fetch(`${apiBase}/api/auth/me`, { credentials: 'include' }).then((r) => {
+      if (r.ok) router.replace(next);
+    });
   }, [next, router]);
 
   async function submit(event: FormEvent) {
@@ -49,9 +47,6 @@ function LoginForm() {
         body: JSON.stringify({ email, password }),
       });
       if (!response.ok) throw new Error('Correo o contraseña incorrectos.');
-      const tokens = (await response.json()) as { accessToken: string; refreshToken: string };
-      localStorage.setItem('accessToken', tokens.accessToken);
-      localStorage.setItem('refreshToken', tokens.refreshToken);
       router.replace(next);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo iniciar sesión.');

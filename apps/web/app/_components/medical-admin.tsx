@@ -4,44 +4,27 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { FormEvent, ReactNode, useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, Download, FileText, ImageUp, Loader2, Plus, Power, Printer, Save, Settings, Stethoscope, Trash2, UserRound, UsersRound } from 'lucide-react';
-import { authenticatedFetch } from './api-client';
-import { AppSidebar, ProtectedModule, UserMenu, canAccess } from './session';
-
-const apiBase = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
+import { authenticatedFetch, jsonHeaders } from './api-client';
+import { AppSidebar, ProtectedModule, UserMenu, canAccess, useSession } from './session';
 
 type Patient = { id: string; fullName: string; patientCode: string; gender?: string; birthDate?: string; phone?: string };
 type Doctor = { id: string; fullName: string; email: string; phone?: string; isActive?: boolean; role?: { name: string }; doctorProfile?: { fullName?: string; specialty?: string; minsaCode?: string; phone?: string; signatureUrl?: string; stampUrl?: string; photoUrl?: string; isActive?: boolean } | null };
 type ClinicSettings = { clinicName: string; logoUrl?: string; printLogoUrl?: string; primaryColor: string; secondaryColor: string; accentColor?: string; address: string; phoneMain: string; phoneAesthetic?: string; whatsapp?: string; email?: string; website?: string; schedule?: string };
 
-function authHeaders(json = false): HeadersInit {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
-  return { ...(json ? { 'Content-Type': 'application/json' } : {}), ...(token ? { Authorization: `Bearer ${token}` } : {}) };
-}
-
 async function api<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const response = await fetch(`${apiBase}${path}`, options);
+  const response = await authenticatedFetch(path, options);
   if (!response.ok) {
     const raw = await response.text().catch(() => 'No se pudo completar la acción');
     let message = raw;
     try {
-      const parsed = JSON.parse(raw);
-      message = Array.isArray(parsed.message) ? parsed.message.join(', ') : parsed.message ?? raw;
+      const parsed = JSON.parse(raw) as { message?: unknown };
+      message = Array.isArray(parsed.message) ? (parsed.message as string[]).join(', ') : (parsed.message as string) ?? raw;
     } catch {
       message = raw;
     }
     throw new Error(message);
   }
   return response.json() as Promise<T>;
-}
-
-function currentRole() {
-  try {
-    const token = localStorage.getItem('accessToken');
-    if (!token) return '';
-    return JSON.parse(atob(token.split('.')[1] ?? '')).role ?? '';
-  } catch {
-    return '';
-  }
 }
 
 function useProtectedData() {
@@ -53,14 +36,10 @@ function useProtectedData() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (!localStorage.getItem('accessToken')) {
-      router.replace('/login');
-      return;
-    }
     Promise.all([
-      api<{ data?: Patient[] } | Patient[]>('/api/patients', { headers: authHeaders() }),
-      api<Doctor[]>('/api/doctors', { headers: authHeaders() }),
-      api<ClinicSettings>('/api/clinic-settings', { headers: authHeaders() }),
+      api<{ data?: Patient[] } | Patient[]>('/api/patients'),
+      api<Doctor[]>('/api/doctors'),
+      api<ClinicSettings>('/api/clinic-settings'),
     ])
       .then(([p, d, s]) => {
         setPatients(Array.isArray(p) ? p : p.data ?? []);
@@ -114,8 +93,7 @@ export function UsersPage({ mode, userId }: { mode?: 'new' | 'edit'; userId?: st
   const [statusFilter, setStatusFilter] = useState<'active' | 'inactive' | 'all'>('active');
 
   useEffect(() => {
-    if (!localStorage.getItem('accessToken')) return router.replace('/login?next=/usuarios');
-    api<Doctor[]>(`/api/users?status=${userId ? 'all' : statusFilter}`, { headers: authHeaders() }).then((list) => {
+    api<Doctor[]>(`/api/users?status=${userId ? 'all' : statusFilter}`).then((list) => {
       setUsers(list);
       const current = userId ? list.find((item) => item.id === userId) : undefined;
       if (current) setForm({ email: current.email, fullName: current.fullName, phone: current.phone ?? '', password: '', role: current.role?.name ?? 'DOCTOR', isActive: (current as any).isActive ?? true, professionalName: current.doctorProfile?.fullName ?? current.fullName, specialty: current.doctorProfile?.specialty ?? '', minsaCode: current.doctorProfile?.minsaCode ?? '' });
@@ -125,10 +103,6 @@ export function UsersPage({ mode, userId }: { mode?: 'new' | 'edit'; userId?: st
   async function submit(event: FormEvent) {
     event.preventDefault();
     setError('');
-    if (currentRole() !== 'SUPER_ADMIN') {
-      setError('Solo SUPER_ADMIN puede crear usuarios o editar códigos MINSA.');
-      return;
-    }
     if (form.role === 'DOCTOR' && (!form.professionalName.trim() || !form.minsaCode.trim() || !form.specialty.trim())) {
       setError('Para rol MÉDICO complete nombre profesional, código MINSA y especialidad.');
       return;
@@ -138,7 +112,7 @@ export function UsersPage({ mode, userId }: { mode?: 'new' | 'edit'; userId?: st
     const endpoint = userId ? `/api/users/${userId}` : '/api/users';
     const method = userId ? 'PATCH' : 'POST';
     try {
-      await api(endpoint, { method, headers: authHeaders(true), body: JSON.stringify(payload) });
+      await api(endpoint, { method, headers: jsonHeaders(), body: JSON.stringify(payload) });
       setMessage('Usuario guardado correctamente.');
       if (!userId) router.push('/usuarios');
     } catch (err) {
@@ -157,7 +131,7 @@ export function UsersPage({ mode, userId }: { mode?: 'new' | 'edit'; userId?: st
       return;
     }
     try {
-      const updated = await api<Doctor>(`/api/users/${user.id}/${enable ? 'enable' : 'disable'}`, { method: 'PATCH', headers: authHeaders(true), body: JSON.stringify({ reason }) });
+      const updated = await api<Doctor>(`/api/users/${user.id}/${enable ? 'enable' : 'disable'}`, { method: 'PATCH', headers: jsonHeaders(), body: JSON.stringify({ reason }) });
       setUsers((current) => current.map((item) => (item.id === user.id ? updated : item)));
       setMessage(enable ? 'Usuario reactivado correctamente.' : 'Usuario desactivado correctamente.');
     } catch (err) {
@@ -175,7 +149,7 @@ export function UsersPage({ mode, userId }: { mode?: 'new' | 'edit'; userId?: st
     try {
       await api(`/api/users/${user.id}`, {
         method: 'DELETE',
-        headers: authHeaders(true),
+        headers: jsonHeaders(),
         body: JSON.stringify({ reason }),
       });
       setUsers((current) => current.filter((item) => item.id !== user.id));
@@ -272,7 +246,7 @@ export function DoctorsSettingsPage() {
   async function save(event: FormEvent) {
     event.preventDefault();
     if (!active) return;
-    await api(`/api/doctors/${active.id}`, { method: 'PATCH', headers: authHeaders(true), body: JSON.stringify(form) });
+    await api(`/api/doctors/${active.id}`, { method: 'PATCH', headers: jsonHeaders(), body: JSON.stringify(form) });
     setMessage('Perfil médico guardado correctamente.');
   }
 
@@ -307,7 +281,7 @@ export function ClinicSettingsPage() {
   async function save(event: FormEvent) {
     event.preventDefault();
     if (!form) return;
-    const saved = await api<ClinicSettings>('/api/clinic-settings', { method: 'PATCH', headers: authHeaders(true), body: JSON.stringify(form) });
+    const saved = await api<ClinicSettings>('/api/clinic-settings', { method: 'PATCH', headers: jsonHeaders(), body: JSON.stringify(form) });
     setForm(saved); setMessage('Configuración guardada correctamente.');
   }
   async function uploadLogo(file?: File) {
@@ -315,7 +289,7 @@ export function ClinicSettingsPage() {
     const data = new FormData();
     data.append('file', file);
     try {
-      const saved = await api<ClinicSettings>('/api/clinic-settings/logo', { method: 'POST', headers: authHeaders(false), body: data });
+      const saved = await api<ClinicSettings>('/api/clinic-settings/logo', { method: 'POST', body: data });
       setForm(saved);
       setMessage('Logo actualizado correctamente.');
     } catch (err) {
@@ -375,10 +349,6 @@ export function DocumentFormPage({ kind, initialPatientId }: { kind: 'prescripti
   async function submit(event: FormEvent) {
     event.preventDefault();
     setMessage('');
-    if (kind === 'prescription' && !canAccess(currentRole(), 'prescriptions')) {
-      setMessage('No tiene permiso para emitir recetas médicas.');
-      return;
-    }
     const common = { patientId, doctorId };
     const payload = kind === 'prescription'
       ? { ...common, diagnosis: form.diagnosis, recommendationsGeneral: form.recommendationsGeneral, items: [{ medicationName: form.medicationName, concentration: form.concentration, presentation: form.presentation, dose: form.dose, route: form.route, frequency: form.frequency, duration: form.duration, instructions: form.instructions }] }
@@ -389,7 +359,7 @@ export function DocumentFormPage({ kind, initialPatientId }: { kind: 'prescripti
           : { ...common, documentType: form.documentType, title: form.title, content: form.content, diagnosis: form.diagnosis };
     const endpoint = kind === 'prescription' ? '/api/prescriptions' : kind === 'lab' ? '/api/lab-orders-external' : kind === 'image' ? '/api/imaging-orders' : '/api/documents/certificates';
     try {
-      const result = await api<any>(endpoint, { method: 'POST', headers: authHeaders(true), body: JSON.stringify(payload) });
+      const result = await api<any>(endpoint, { method: 'POST', headers: jsonHeaders(), body: JSON.stringify(payload) });
       setSaved(result); setMessage('Documento guardado correctamente.');
     } catch (err) {
       setMessage(err instanceof Error ? err.message : 'No se pudo guardar el documento');
@@ -455,12 +425,12 @@ export function PatientPrintPage({ patientId }: { patientId: string }) {
 
 export function PrescriptionDetailPage({ id }: { id: string }) {
   const router = useRouter();
+  const session = useSession();
   const { settings, loading: loadingBase } = useProtectedData();
   const [prescription, setPrescription] = useState<any>(null);
   const [error, setError] = useState('');
   useEffect(() => {
-    if (!localStorage.getItem('accessToken')) return;
-    api<any>(`/api/prescriptions/${id}`, { headers: authHeaders() })
+    api<any>(`/api/prescriptions/${id}`)
       .then(setPrescription)
       .catch((err) => setError(err instanceof Error ? err.message : 'No se pudo cargar la receta'));
   }, [id]);
@@ -482,7 +452,7 @@ export function PrescriptionDetailPage({ id }: { id: string }) {
     const reason = window.prompt('Motivo de anulación:');
     if (!reason?.trim()) return;
     try {
-      await api(`/api/prescriptions/${id}/void`, { method: 'PATCH', headers: authHeaders(true), body: JSON.stringify({ reason }) });
+      await api(`/api/prescriptions/${id}/void`, { method: 'PATCH', headers: jsonHeaders(), body: JSON.stringify({ reason }) });
       router.replace('/panel');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo anular la receta');
@@ -493,7 +463,7 @@ export function PrescriptionDetailPage({ id }: { id: string }) {
     const reason = window.prompt('Motivo de eliminación definitiva:');
     if (!reason?.trim()) return;
     try {
-      await api(`/api/prescriptions/${id}`, { method: 'DELETE', headers: authHeaders(true), body: JSON.stringify({ reason }) });
+      await api(`/api/prescriptions/${id}`, { method: 'DELETE', headers: jsonHeaders(), body: JSON.stringify({ reason }) });
       router.replace('/panel');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo eliminar la receta');
@@ -504,8 +474,8 @@ export function PrescriptionDetailPage({ id }: { id: string }) {
       {loadingBase || (!prescription && !error) ? <Loading /> : error ? <p>{error}</p> : (
         <div className="space-y-3">
           <PrintPreview settings={settings} patient={prescription.patient} doctor={prescription.doctor} kind="prescription" form={form} pdfPath={`/api/prescriptions/${id}/pdf`} />
-          {['SUPER_ADMIN', 'DOCTOR'].includes(currentRole()) && <button onClick={() => void voidPrescription()} className="rounded-md border border-red-200 px-4 py-2 text-sm font-semibold text-red-700">Anular receta con motivo</button>}
-          {currentRole() === 'SUPER_ADMIN' && <button onClick={() => void deletePrescription()} className="ml-2 rounded-md bg-red-700 px-4 py-2 text-sm font-semibold text-white"><Trash2 className="mr-1 inline h-4 w-4" />Eliminar definitivamente</button>}
+          {['SUPER_ADMIN', 'DOCTOR'].includes(session?.role ?? '') && <button onClick={() => void voidPrescription()} className="rounded-md border border-red-200 px-4 py-2 text-sm font-semibold text-red-700">Anular receta con motivo</button>}
+          {session?.role === 'SUPER_ADMIN' && <button onClick={() => void deletePrescription()} className="ml-2 rounded-md bg-red-700 px-4 py-2 text-sm font-semibold text-white"><Trash2 className="mr-1 inline h-4 w-4" />Eliminar definitivamente</button>}
         </div>
       )}
     </AdminShell>

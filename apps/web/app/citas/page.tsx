@@ -7,19 +7,14 @@ import { ArrowLeft, CalendarDays, Home, Save } from 'lucide-react';
 import { MasterActionMenu } from '../_components/master-action-menu';
 import { AppSidebar, ProtectedModule, UserMenu } from '../_components/session';
 
-const apiBase = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
+import { authenticatedFetch, jsonHeaders } from '../_components/api-client';
 
 type Patient = { id: string; fullName: string; patientCode: string; appointments?: Appointment[] };
 type Doctor = { id: string; fullName: string; doctorProfile?: { fullName?: string; minsaCode?: string } | null };
 type Appointment = { id: string; startsAt: string; endsAt?: string; reason?: string; status: string; patient?: Patient };
 
-function authHeaders(json = false): HeadersInit {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
-  return { ...(json ? { 'Content-Type': 'application/json' } : {}), ...(token ? { Authorization: `Bearer ${token}` } : {}) };
-}
-
 async function api<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const response = await fetch(`${apiBase}${path}`, options);
+  const response = await authenticatedFetch(path, options);
   if (response.status === 401) {
     window.location.href = '/login?next=/citas';
     throw new Error('Sesión expirada');
@@ -51,13 +46,9 @@ function CitasClient() {
   });
 
   useEffect(() => {
-    if (!localStorage.getItem('accessToken')) {
-      router.replace('/login?next=/citas');
-      return;
-    }
     void Promise.all([
-      api<{ data?: Patient[] } | Patient[]>('/api/patients', { headers: authHeaders() }),
-      api<Doctor[]>('/api/doctors', { headers: authHeaders() }),
+      api<{ data?: Patient[] } | Patient[]>('/api/patients'),
+      api<Doctor[]>('/api/doctors'),
     ]).then(([p, d]) => {
       const list = Array.isArray(p) ? p : p.data ?? [];
       setPatients(list);
@@ -85,7 +76,7 @@ function CitasClient() {
     try {
       await api(`/api/patients/${form.patientId}/appointments`, {
         method: 'POST',
-        headers: authHeaders(true),
+        headers: jsonHeaders(),
         body: JSON.stringify({ doctorId: form.doctorId, startsAt: startsAt.toISOString(), endsAt: endsAt.toISOString(), reason: `${form.service}${form.observations ? ` - ${form.observations}` : ''}`, status: form.status }),
       });
       setMessage('Cita creada correctamente');

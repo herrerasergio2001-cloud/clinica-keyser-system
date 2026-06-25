@@ -7,7 +7,7 @@ import { AlertTriangle, ArrowLeft, Barcode, CalendarClock, Home, PackagePlus, Pi
 import { MasterActionMenu } from '../../_components/master-action-menu';
 import { AppSidebar, ProtectedModule, UserMenu } from '../../_components/session';
 
-const apiBase = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
+import { authenticatedFetch, jsonHeaders } from '../../_components/api-client';
 
 type Product = {
   id: string;
@@ -46,24 +46,8 @@ type Batch = {
 
 type Movement = { id: string; type: string; quantity: number; stockBefore?: number; stockAfter?: number; createdAt: string; product?: Product; batch?: Batch };
 
-function headers(json = true): HeadersInit {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
-  return { ...(json ? { 'Content-Type': 'application/json' } : {}), ...(token ? { Authorization: `Bearer ${token}` } : {}) };
-}
-
 function money(value: string | number | undefined) {
   return `C$ ${Number(value ?? 0).toFixed(2)}`;
-}
-
-function currentUserEmail() {
-  try {
-    const token = localStorage.getItem('accessToken');
-    if (!token) return 'Usuario del sistema';
-    const payload = JSON.parse(atob(token.split('.')[1] ?? ''));
-    return payload.email ?? 'Usuario del sistema';
-  } catch {
-    return 'Usuario del sistema';
-  }
 }
 
 function printReceipt(receipt: any, lines: Array<{ product: Product; quantity: number; discountPercent: number }>, total: number) {
@@ -76,20 +60,13 @@ function printReceipt(receipt: any, lines: Array<{ product: Product; quantity: n
       const discount = subtotal * (line.discountPercent / 100);
       return `<tr><td>${line.product.name}</td><td>${line.quantity}</td><td>${money(unit)}</td><td>${money(discount)}</td><td>${money(subtotal - discount)}</td></tr>`;
     }).join('');
-    popup.document.write(`<!doctype html><html><head><title>Recibo ${receipt?.saleNumber ?? ''}</title><style>body{font-family:Arial,sans-serif;margin:24px;color:#0f172a}.head{text-align:center;border-bottom:1px solid #cbd5e1;padding-bottom:12px}img{height:64px;object-fit:contain}table{width:100%;border-collapse:collapse;margin-top:16px;font-size:12px}td,th{border-bottom:1px solid #e2e8f0;padding:7px;text-align:left}.total{text-align:right;font-size:18px;font-weight:700;margin-top:16px}.meta{font-size:12px;color:#475569}</style></head><body><div class="head"><img src="/clinica-keyser-logo.jpg" alt="Clínica Keyser"/><h2>Clínica Keyser</h2><p class="meta">Recibo ${receipt?.saleNumber ?? ''}</p><p class="meta">${new Date().toLocaleString('es-NI')} · ${currentUserEmail()}</p></div><table><thead><tr><th>Producto</th><th>Cant.</th><th>Precio</th><th>Desc.</th><th>Total</th></tr></thead><tbody>${rows}</tbody></table><p class="total">Total: ${money(total)}</p><script>window.onload=()=>{window.print(); setTimeout(()=>window.close(), 500)}</script></body></html>`);
+    popup.document.write(`<!doctype html><html><head><title>Recibo ${receipt?.saleNumber ?? ''}</title><style>body{font-family:Arial,sans-serif;margin:24px;color:#0f172a}.head{text-align:center;border-bottom:1px solid #cbd5e1;padding-bottom:12px}img{height:64px;object-fit:contain}table{width:100%;border-collapse:collapse;margin-top:16px;font-size:12px}td,th{border-bottom:1px solid #e2e8f0;padding:7px;text-align:left}.total{text-align:right;font-size:18px;font-weight:700;margin-top:16px}.meta{font-size:12px;color:#475569}</style></head><body><div class="head"><img src="/clinica-keyser-logo.jpg" alt="Clínica Keyser"/><h2>Clínica Keyser</h2><p class="meta">Recibo ${receipt?.saleNumber ?? ''}</p><p class="meta">${new Date().toLocaleString('es-NI')}</p></div><table><thead><tr><th>Producto</th><th>Cant.</th><th>Precio</th><th>Desc.</th><th>Total</th></tr></thead><tbody>${rows}</tbody></table><p class="total">Total: ${money(total)}</p><script>window.onload=()=>{window.print(); setTimeout(()=>window.close(), 500)}</script></body></html>`);
     popup.document.close();
   } catch (error) {
     window.alert(error instanceof Error ? error.message : 'No se pudo imprimir el recibo.');
   }
 }
 
-function useAuthRedirect() {
-  const router = useRouter();
-  useEffect(() => {
-    if (!localStorage.getItem('accessToken')) router.replace('/login?next=/farmacia');
-  }, [router]);
-  return router;
-}
 
 function Shell({ title, children }: { title: string; children: React.ReactNode }) {
   const router = useRouter();
@@ -150,9 +127,8 @@ function Shell({ title, children }: { title: string; children: React.ReactNode }
 }
 
 async function api<T>(path: string, options?: RequestInit): Promise<T> {
-  const response = await fetch(`${apiBase}${path}`, options);
+  const response = await authenticatedFetch(path, options);
   if (response.status === 401) {
-    localStorage.removeItem('accessToken');
     window.location.href = '/login?next=/farmacia';
     throw new Error('Unauthorized');
   }
@@ -161,9 +137,9 @@ async function api<T>(path: string, options?: RequestInit): Promise<T> {
 }
 
 export function PharmacyDashboard() {
-  useAuthRedirect();
+
   const [data, setData] = useState<any>();
-  useEffect(() => void api('/api/pharmacy/dashboard', { headers: headers(false) }).then(setData).catch(() => undefined), []);
+  useEffect(() => void api('/api/pharmacy/dashboard', {}).then(setData).catch(() => undefined), []);
   return (
     <Shell title="Panel">
       <div className="grid gap-4 md:grid-cols-4">
@@ -192,10 +168,10 @@ function Metric({ icon: Icon, label, value }: { icon: React.ComponentType<{ clas
 }
 
 export function ProductsPage() {
-  useAuthRedirect();
+
   const [products, setProducts] = useState<Product[]>([]);
   const [search, setSearch] = useState('');
-  useEffect(() => void api<Product[]>(`/api/pharmacy/products?search=${encodeURIComponent(search)}`, { headers: headers(false) }).then(setProducts).catch(() => undefined), [search]);
+  useEffect(() => void api<Product[]>(`/api/pharmacy/products?search=${encodeURIComponent(search)}`, {}).then(setProducts).catch(() => undefined), [search]);
   return (
     <Shell title="Productos">
       <div className="mb-4 flex flex-wrap gap-3">
@@ -215,7 +191,7 @@ function ProductTable({ products }: { products: Product[] }) {
     if (!confirmed) return;
     const reason = window.prompt(`Motivo para desactivar ${product.name}`);
     if (!reason?.trim()) return alert('Debe ingresar un motivo.');
-    const response = await fetch(`${apiBase}/api/pharmacy/products/${product.id}/disable`, { method: 'PATCH', headers: headers(true), body: JSON.stringify({ reason }) });
+    const response = await authenticatedFetch(`/api/pharmacy/products/${product.id}/disable`, { method: 'PATCH', headers: jsonHeaders(), body: JSON.stringify({ reason }) });
     if (!response.ok) return alert('No se pudo desactivar el producto.');
     window.location.reload();
   }
@@ -253,18 +229,18 @@ function AlertChips({ product }: { product: Product }) {
 }
 
 export function ProductFormPage({ id }: { id?: string }) {
-  const router = useAuthRedirect();
+  const router = useRouter();
   const [form, setForm] = useState<any>({ productCode: '', barcode: '', name: '', activeIngredient: '', presentation: '', concentration: '', pharmaceuticalForm: '', category: 'Medicamentos', manufacturer: '', supplier: '', unit: 'unidad', quantity: 0, minimumStock: 5, costPrice: 0, salePrice: 0, status: 'ACTIVE' });
   const [batch, setBatch] = useState<any>({ batchNumber: '', expiresAt: '', initialQuantity: 0, availableQuantity: 0, costPrice: 0, salePrice: 0, supplier: '', observations: '' });
-  useEffect(() => { if (id) void api<Product>(`/api/pharmacy/products/${id}`, { headers: headers(false) }).then((data) => setForm(data)); }, [id]);
+  useEffect(() => { if (id) void api<Product>(`/api/pharmacy/products/${id}`, {}).then((data) => setForm(data)); }, [id]);
   const margin = useMemo(() => Number(form.salePrice || 0) - Number(form.costPrice || 0), [form.costPrice, form.salePrice]);
   async function save(event: FormEvent) {
     event.preventDefault();
-    const saved = await api<Product>(id ? `/api/pharmacy/products/${id}` : '/api/pharmacy/products', { method: id ? 'PATCH' : 'POST', headers: headers(), body: JSON.stringify(form) });
+    const saved = await api<Product>(id ? `/api/pharmacy/products/${id}` : '/api/pharmacy/products', { method: id ? 'PATCH' : 'POST', headers: jsonHeaders(), body: JSON.stringify(form) });
     router.replace(`/farmacia/productos/${saved.id}`);
   }
   async function addBatch() {
-    await api(`/api/pharmacy/products/${id}/batches`, { method: 'POST', headers: headers(), body: JSON.stringify({ ...batch, initialQuantity: Number(batch.initialQuantity), availableQuantity: Number(batch.availableQuantity), costPrice: Number(batch.costPrice), salePrice: Number(batch.salePrice) }) });
+    await api(`/api/pharmacy/products/${id}/batches`, { method: 'POST', headers: jsonHeaders(), body: JSON.stringify({ ...batch, initialQuantity: Number(batch.initialQuantity), availableQuantity: Number(batch.availableQuantity), costPrice: Number(batch.costPrice), salePrice: Number(batch.salePrice) }) });
     window.location.reload();
   }
   return (
@@ -287,10 +263,10 @@ function Input({ label, value, onChange, type = 'text' }: { label: string; value
 }
 
 export function InventoryPage({ mode }: { mode: 'batches' | 'expirations' | 'kardex' }) {
-  useAuthRedirect();
+
   const [data, setData] = useState<any[]>([]);
   const path = mode === 'batches' ? '/api/inventory/batches' : mode === 'expirations' ? '/api/inventory/expirations?days=90' : '/api/inventory/movements';
-  useEffect(() => void api<any[]>(path, { headers: headers(false) }).then(setData).catch(() => undefined), [path]);
+  useEffect(() => void api<any[]>(path, {}).then(setData).catch(() => undefined), [path]);
   return (
     <Shell title={mode === 'kardex' ? 'Kardex' : mode === 'expirations' ? 'Vencimientos' : 'Inventario por lotes'}>
       {mode === 'kardex' ? <MovementTable movements={data as Movement[]} /> : <BatchTable batches={data as Batch[]} />}
@@ -307,13 +283,13 @@ function MovementTable({ movements }: { movements: Movement[] }) {
 }
 
 export function PosPage() {
-  useAuthRedirect();
+
   const [products, setProducts] = useState<Product[]>([]);
   const [search, setSearch] = useState('');
   const [cart, setCart] = useState<Array<{ product: Product; quantity: number; discountPercent: number }>>([]);
   const [receipt, setReceipt] = useState<any>();
   const [message, setMessage] = useState('');
-  useEffect(() => void api<Product[]>(`/api/pharmacy/products?search=${encodeURIComponent(search)}`, { headers: headers(false) }).then(setProducts).catch(() => undefined), [search]);
+  useEffect(() => void api<Product[]>(`/api/pharmacy/products?search=${encodeURIComponent(search)}`, {}).then(setProducts).catch(() => undefined), [search]);
   const linePrice = (line: { product: Product; quantity: number; discountPercent: number }) => {
     const wholesaleApplies = line.product.wholesaleMinQuantity && line.quantity >= line.product.wholesaleMinQuantity && line.product.wholesalePrice;
     const unit = Number(wholesaleApplies ? line.product.wholesalePrice : line.product.salePrice);
@@ -337,7 +313,7 @@ export function PosPage() {
     try {
       const soldLines = cart;
       const soldTotal = total;
-      const sale = await api<any>('/api/pharmacy/sales', { method: 'POST', headers: headers(), body: JSON.stringify({ items: cart.map((line) => ({ productId: line.product.id, quantity: line.quantity, discount: linePrice(line).discount })) }) });
+      const sale = await api<any>('/api/pharmacy/sales', { method: 'POST', headers: jsonHeaders(), body: JSON.stringify({ items: cart.map((line) => ({ productId: line.product.id, quantity: line.quantity, discount: linePrice(line).discount })) }) });
       setReceipt({ ...sale, lines: soldLines, total: soldTotal });
       setCart([]);
       setMessage('Venta guardada correctamente');

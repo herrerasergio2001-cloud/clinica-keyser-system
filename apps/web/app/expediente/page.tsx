@@ -5,6 +5,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { FilePlus2, Search, Stethoscope } from 'lucide-react';
 import { ClinicalShell, Field, SectionTitle } from './_components/clinical-shell';
 
+import { authenticatedFetch } from '../_components/api-client';
+
 const apiBase = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
 
 type RecordItem = {
@@ -24,10 +26,9 @@ export default function MedicalRecordsPage() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    const token = localStorage.getItem('accessToken');
     const timer = window.setTimeout(() => {
       const params = search.trim() ? `?search=${encodeURIComponent(search.trim())}` : '';
-      void fetch(`${apiBase}/api/medical-records${params}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+      void authenticatedFetch(`/api/medical-records${params}`)
         .then(async (response) => {
           if (!response.ok) throw new Error('No se pudieron cargar los expedientes');
           setRecords(await response.json());

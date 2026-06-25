@@ -17,8 +17,7 @@ import {
   X,
 } from 'lucide-react';
 import { AppSidebar, ProtectedModule, UserMenu } from '../../_components/session';
-
-const apiBase = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
+import { apiBase, authenticatedFetch, jsonHeaders } from '../../_components/api-client';
 
 type Tab = 'clinica' | 'services' | 'gallery' | 'team';
 type Collection = 'services' | 'gallery' | 'team';
@@ -159,10 +158,6 @@ export default function AdminPublicPage() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (!localStorage.getItem('accessToken')) {
-      router.replace('/login?next=/admin/pagina-publica');
-      return;
-    }
     void load();
   }, [router]);
 
@@ -170,7 +165,7 @@ export default function AdminPublicPage() {
     setLoading(true);
     setError('');
     try {
-      const response = await fetch(`${apiBase}/api/admin/public`, { headers: authHeaders() });
+      const response = await authenticatedFetch('/api/admin/public');
       if (response.status === 401 || response.status === 403) {
         router.replace('/login?next=/admin/pagina-publica');
         return;
@@ -195,9 +190,9 @@ export default function AdminPublicPage() {
     setSaving(true);
     setError('');
     try {
-      const response = await fetch(`${apiBase}/api/admin/public/settings`, {
+      const response = await authenticatedFetch('/api/admin/public/settings', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        headers: jsonHeaders(),
         body: JSON.stringify(data.settings),
       });
       if (!response.ok) throw new Error('No se pudo guardar la información de la clínica.');
@@ -217,9 +212,9 @@ export default function AdminPublicPage() {
     setError('');
     try {
       const id = editing[kind];
-      const response = await fetch(`${apiBase}/api/admin/public/${kind}${id ? `/${id}` : ''}`, {
+      const response = await authenticatedFetch(`/api/admin/public/${kind}${id ? `/${id}` : ''}`, {
         method: id ? 'PATCH' : 'POST',
-        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        headers: jsonHeaders(),
         body: JSON.stringify(cleanPayload(form)),
       });
       if (!response.ok) throw new Error('No se pudo guardar el contenido.');
@@ -238,7 +233,7 @@ export default function AdminPublicPage() {
     setSaving(true);
     setError('');
     try {
-      const response = await fetch(`${apiBase}/api/admin/public/${kind}/${id}`, { method: 'DELETE', headers: authHeaders() });
+      const response = await authenticatedFetch(`/api/admin/public/${kind}/${id}`, { method: 'DELETE' });
       if (!response.ok) throw new Error('No se pudo eliminar el elemento.');
       setMessage('Elemento eliminado.');
       await load();
@@ -257,7 +252,7 @@ export default function AdminPublicPage() {
     try {
       const body = new FormData();
       body.append('file', file);
-      const response = await fetch(`${apiBase}/api/admin/public/upload`, { method: 'POST', headers: authHeaders(), body });
+      const response = await authenticatedFetch('/api/admin/public/upload', { method: 'POST', body });
       if (!response.ok) throw new Error('No se pudo subir el archivo.');
       const uploaded = await response.json() as { mediaUrl?: string; imageUrl?: string };
       assign(uploaded.mediaUrl ?? uploaded.imageUrl ?? '');
@@ -608,11 +603,6 @@ function SubmitButton({ saving, label }: { saving: boolean; label: string }) {
 
 function CancelButton({ onClick }: { onClick: () => void }) {
   return <button type="button" onClick={onClick} className="inline-flex items-center gap-2 rounded-md border border-slate-200 px-3 py-2 text-sm"><X className="h-4 w-4" />Cancelar</button>;
-}
-
-function authHeaders(): HeadersInit {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
-  return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
 function cleanPayload(form: object) {

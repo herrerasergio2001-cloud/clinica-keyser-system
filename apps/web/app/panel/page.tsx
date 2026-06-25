@@ -7,12 +7,7 @@ import { Activity, ArrowRight, CalendarDays, ClipboardList, FileSignature, Flask
 import { MasterActionMenu } from '../_components/master-action-menu';
 import { AppSidebar, ProtectedModule, UserMenu, canAccess, useSession } from '../_components/session';
 
-const apiBase = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
-
-function authHeaders(): HeadersInit {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
-  return token ? { Authorization: `Bearer ${token}` } : {};
-}
+import { authenticatedFetch } from '../_components/api-client';
 
 export default function Home() {
   const router = useRouter();
@@ -22,9 +17,9 @@ export default function Home() {
   const [lab, setLab] = useState<any>();
 
   useEffect(() => {
-    void fetch(`${apiBase}/api/patients`, { headers: authHeaders() }).then((res) => (res.ok ? res.json() : { data: [] })).then((data) => setPatients(data.data ?? [])).catch(() => setPatients([]));
-    void fetch(`${apiBase}/api/pharmacy/dashboard`, { headers: authHeaders() }).then((res) => (res.ok ? res.json() : undefined)).then(setPharmacy).catch(() => undefined);
-    void fetch(`${apiBase}/api/laboratory/dashboard`, { headers: authHeaders() }).then((res) => (res.ok ? res.json() : undefined)).then(setLab).catch(() => undefined);
+    void authenticatedFetch('/api/patients').then((res) => (res.ok ? res.json() : { data: [] })).then((data) => setPatients(data.data ?? [])).catch(() => setPatients([]));
+    void authenticatedFetch('/api/pharmacy/dashboard').then((res) => (res.ok ? res.json() : undefined)).then(setPharmacy).catch(() => undefined);
+    void authenticatedFetch('/api/laboratory/dashboard').then((res) => (res.ok ? res.json() : undefined)).then(setLab).catch(() => undefined);
   }, []);
 
   const latestRecords = useMemo(() => patients.flatMap((patient) => (patient.medicalRecords ?? []).map((record: any) => ({ ...record, patient }))).slice(0, 3), [patients]);

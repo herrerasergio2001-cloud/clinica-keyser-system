@@ -34,9 +34,8 @@ import {
   UsersRound,
   X,
 } from 'lucide-react';
-import { AppSidebar, ProtectedModule, UserMenu, decodeSession, signOut } from '../_components/session';
-
-const apiBase = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
+import { AppSidebar, ProtectedModule, UserMenu, signOut, useSession } from '../_components/session';
+import { apiBase, authenticatedFetch, jsonHeaders } from '../_components/api-client';
 
 type Gender = 'FEMALE' | 'MALE' | 'OTHER' | 'UNKNOWN';
 
@@ -162,11 +161,6 @@ const emptyForm: PatientForm = {
   categoryId: '',
 };
 
-function authHeaders(json = true): HeadersInit {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
-  return { ...(json ? { 'Content-Type': 'application/json' } : {}), ...(token ? { Authorization: `Bearer ${token}` } : {}) };
-}
-
 function ageFromBirthDate(value: string) {
   const birthDate = new Date(value);
   if (Number.isNaN(birthDate.getTime())) return 0;
@@ -236,8 +230,8 @@ function uploadUrl(patientId: string, file?: PatientAttachment) {
 
 export default function PatientsPage() {
   const router = useRouter();
-  const session = decodeSession();
-  const isAdmin = session?.role === 'SUPER_ADMIN';
+  const sessionUser = useSession();
+  const isAdmin = sessionUser?.role === 'SUPER_ADMIN';
   const [patients, setPatients] = useState<Patient[]>([]);
   const [categories, setCategories] = useState<PatientCategory[]>([]);
   const [query, setQuery] = useState('');
@@ -273,10 +267,6 @@ export default function PatientsPage() {
   }, [query]);
 
   useEffect(() => {
-    if (!localStorage.getItem('accessToken')) {
-      router.replace('/login?next=/pacientes');
-      return;
-    }
     void loadPatients();
     void loadCategories();
   }, [debouncedQuery, filters, page, router]);
@@ -291,7 +281,7 @@ export default function PatientsPage() {
 
   async function loadCategories() {
     try {
-      const response = await fetch(`${apiBase}/api/patients/categories`, { headers: authHeaders(false) });
+      const response = await authenticatedFetch('/api/patients/categories');
       if (response.status === 401) {
         redirectToLogin();
         return;
@@ -319,7 +309,7 @@ export default function PatientsPage() {
       }
     });
     try {
-      const response = await fetch(`${apiBase}/api/patients?${params.toString()}`, { headers: authHeaders(false) });
+      const response = await authenticatedFetch(`/api/patients?${params.toString()}`);
       if (response.status === 401) {
         redirectToLogin();
         return;
@@ -382,8 +372,6 @@ export default function PatientsPage() {
   }
 
   function redirectToLogin() {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
     router.replace('/login?next=/pacientes');
   }
 
@@ -426,9 +414,9 @@ export default function PatientsPage() {
     setPatients((current) => (editing ? current.map((patient) => (patient.id === editing.id ? optimistic : patient)) : [optimistic, ...current]));
 
     try {
-      const response = await fetch(editing ? `${apiBase}/api/patients/${editing.id}` : `${apiBase}/api/patients`, {
+      const response = await authenticatedFetch(editing ? `/api/patients/${editing.id}` : '/api/patients', {
         method: editing ? 'PATCH' : 'POST',
-        headers: authHeaders(),
+        headers: jsonHeaders(),
         body: JSON.stringify(payload),
       });
       if (response.status === 401) {
@@ -461,7 +449,7 @@ export default function PatientsPage() {
     }
     setPatients((current) => current.filter((item) => item.id !== patient.id));
     try {
-      const response = await fetch(`${apiBase}/api/patients/${patient.id}`, { method: 'DELETE', headers: authHeaders(), body: JSON.stringify({ reason }) });
+      const response = await authenticatedFetch(`/api/patients/${patient.id}`, { method: 'DELETE', headers: jsonHeaders(), body: JSON.stringify({ reason }) });
       if (response.status === 401) {
         redirectToLogin();
         return;
@@ -482,9 +470,9 @@ export default function PatientsPage() {
     const reason = window.prompt(`Motivo para ${action} el paciente:`);
     if (!reason?.trim()) return;
     try {
-      const response = await fetch(`${apiBase}/api/patients/${patient.id}/${activate ? 'activate' : 'deactivate'}`, {
+      const response = await authenticatedFetch(`/api/patients/${patient.id}/${activate ? 'activate' : 'deactivate'}`, {
         method: 'PATCH',
-        headers: authHeaders(),
+        headers: jsonHeaders(),
         body: JSON.stringify({ reason }),
       });
       if (!response.ok) throw new Error(`No se pudo ${action} el paciente`);
@@ -502,9 +490,9 @@ export default function PatientsPage() {
     const reason = window.prompt('Motivo de restauración:');
     if (!reason?.trim()) return;
     try {
-      const response = await fetch(`${apiBase}/api/patients/${patient.id}/restore`, {
+      const response = await authenticatedFetch(`/api/patients/${patient.id}/restore`, {
         method: 'PATCH',
-        headers: authHeaders(),
+        headers: jsonHeaders(),
         body: JSON.stringify({ reason }),
       });
       if (!response.ok) throw new Error('No se pudo restaurar el paciente');
@@ -529,9 +517,8 @@ export default function PatientsPage() {
         const formData = new FormData();
         formData.append('file', file);
         formData.append('category', file.type.includes('pdf') ? 'documento' : 'imagen');
-        const response = await fetch(`${apiBase}/api/patients/${patient.id}/files`, {
+        const response = await authenticatedFetch(`/api/patients/${patient.id}/files`, {
           method: 'POST',
-          headers: authHeaders(false),
           body: formData,
         });
         if (response.status === 401) {
