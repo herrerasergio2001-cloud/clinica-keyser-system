@@ -9,7 +9,8 @@ export { Badge } from './shared/badge';
 export { Button } from './shared/button';
 export { FormField } from './forms/form-field';
 export { Input } from './forms/input';
-export { Select } from './forms/select';
+// Search
+export { SearchInput } from './search/search-input';
 
 // Modals
 export { Modal } from './modals/modal';
