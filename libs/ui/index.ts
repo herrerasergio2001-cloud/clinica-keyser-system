@@ -4,5 +4,5 @@ export * from './components/index';
 // Hooks
 export * from './hooks/index';
 
-// Types
-export * from './styles/design-tokens';
+// Design Tokens
+export { colors } from './styles/design-tokens';
