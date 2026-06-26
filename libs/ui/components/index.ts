@@ -12,6 +12,9 @@ export { Input } from './forms/input';
 // Search
 export { SearchInput } from './search/search-input';
 
+// Search
+export { SearchInput } from './search/search-input';
+
 // Modals
 export { Modal } from './modals/modal';
 
