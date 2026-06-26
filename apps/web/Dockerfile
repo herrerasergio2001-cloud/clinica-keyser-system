@@ -18,6 +18,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 
 COPY apps/web ./apps/web
 COPY shared ./shared
+COPY libs ./libs
 
 RUN npm run build -w apps/web
 
