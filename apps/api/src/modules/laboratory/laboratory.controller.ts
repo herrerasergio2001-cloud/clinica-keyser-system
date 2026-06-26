@@ -26,8 +26,8 @@ export class LaboratoryController {
 
   @Get('orders')
   @Permissions('laboratory:*', 'medical-records:read', 'appointments:*', '*')
-  orders(@Query('status') status?: 'active' | 'cancelled' | 'all') {
-    return this.laboratory.orders(status ?? 'active');
+  orders(@Query('status') status?: 'active' | 'cancelled' | 'all', @Query('page') page?: string, @Query('limit') limit?: string) {
+    return this.laboratory.orders(status ?? 'active', page ? Number(page) : 1, limit ? Number(limit) : 50);
   }
 
   @Post('orders')

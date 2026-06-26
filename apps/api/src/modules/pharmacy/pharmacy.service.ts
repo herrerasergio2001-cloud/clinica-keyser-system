@@ -112,7 +112,7 @@ export class PharmacyService {
   }
 
   inventory() {
-    return this.prisma.productBatch.findMany({ where: { isDeleted: false }, include: { product: true }, orderBy: [{ expiresAt: 'asc' }, { availableQuantity: 'asc' }] });
+    return this.prisma.productBatch.findMany({ where: { isDeleted: false }, include: { product: true }, orderBy: [{ expiresAt: 'asc' }, { availableQuantity: 'asc' }], take: 500 });
   }
 
   expirations(days = 90) {

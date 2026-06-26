@@ -31,12 +31,21 @@ export class LaboratoryService {
     };
   }
 
-  orders(status: 'active' | 'cancelled' | 'all' = 'active') {
-    return this.prisma.labOrder.findMany({
-      where: status === 'all' ? undefined : status === 'cancelled' ? { status: 'CANCELLED' } : { status: { not: 'CANCELLED' } },
-      include: { patient: true, labResults: { where: { isDeleted: false }, include: { template: true } } },
-      orderBy: { createdAt: 'desc' },
-    });
+  async orders(status: 'active' | 'cancelled' | 'all' = 'active', page = 1, limit = 50) {
+    const safeLimit = Math.min(Math.max(1, limit), 200);
+    const safePage = Math.max(1, page);
+    const where = status === 'all' ? undefined : status === 'cancelled' ? { status: 'CANCELLED' } : { status: { not: 'CANCELLED' } };
+    const [data, total] = await this.prisma.$transaction([
+      this.prisma.labOrder.findMany({
+        where,
+        include: { patient: true, labResults: { where: { isDeleted: false }, include: { template: true } } },
+        orderBy: { createdAt: 'desc' },
+        skip: (safePage - 1) * safeLimit,
+        take: safeLimit,
+      }),
+      this.prisma.labOrder.count({ where }),
+    ]);
+    return { data, meta: { page: safePage, limit: safeLimit, total, pages: Math.ceil(total / safeLimit) || 1 } };
   }
 
   async createOrder(data: CreateLabOrderDto, actor: CurrentUser) {
