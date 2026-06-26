@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { AsyncState, ApiError } from '../types';
+import { AsyncState, ApiError } from '@clinic/types';
 
 interface UseAsyncOptions {
   [key: string]: any;

@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { SelectOption } from '../../types';
+import { SelectOption } from '@clinic/types';
 
 interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
   label?: string;

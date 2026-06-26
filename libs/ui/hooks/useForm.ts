@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
-import { FormState } from '../types';
+import { FormState } from '@clinic/types';
 
 interface UseFormOptions<T> {
   initialValues: T;

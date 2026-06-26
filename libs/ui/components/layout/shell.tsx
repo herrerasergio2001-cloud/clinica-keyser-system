@@ -4,8 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Home } from 'lucide-react';
-import { AppSidebar, UserMenu } from '../../../apps/web/app/_components/session';
-import { ActionButton } from '../../types';
+import { ActionButton } from '@clinic/types';
 import { Button } from '../shared/button';
 
 interface ShellProps {
@@ -17,6 +16,8 @@ interface ShellProps {
   actions?: ActionButton[];
   active?: string;
   showBack?: boolean;
+  sidebar?: React.ReactNode;
+  userMenu?: React.ReactNode;
 }
 
 export function Shell({
@@ -28,13 +29,15 @@ export function Shell({
   actions,
   active,
   showBack = true,
+  sidebar,
+  userMenu,
 }: ShellProps) {
   const router = useRouter();
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-950 dark:bg-slate-950 dark:text-slate-100">
       <div className="grid min-h-screen grid-cols-[260px_1fr] max-lg:grid-cols-1">
-        {active && <AppSidebar active={active} />}
+        {sidebar && <>{sidebar}</>}
         <section className="min-w-0 flex flex-col">
           {/* Header */}
           <header className="border-b border-slate-200 bg-white px-6 py-4 dark:border-slate-800 dark:bg-slate-900 sticky top-0 z-40">
@@ -63,7 +66,7 @@ export function Shell({
 
               {/* Top-right actions */}
               <nav className="flex flex-wrap gap-2">
-                <UserMenu />
+                {userMenu && <>{userMenu}</>}
                 {actions?.map((action) => (
                   <Button
                     key={action.label}

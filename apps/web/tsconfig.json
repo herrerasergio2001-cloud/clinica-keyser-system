@@ -13,7 +13,16 @@
     "isolatedModules": true,
     "jsx": "preserve",
     "incremental": true,
-    "plugins": [{ "name": "next" }]
+    "plugins": [{ "name": "next" }],
+    "baseUrl": ".",
+    "paths": {
+      "@clinic/ui": ["../../libs/ui/index.ts"],
+      "@clinic/ui/*": ["../../libs/ui/*"],
+      "@clinic/api": ["../../libs/api/index.ts"],
+      "@clinic/api/*": ["../../libs/api/*"],
+      "@clinic/types": ["../../libs/types/index.ts"],
+      "@clinic/types/*": ["../../libs/types/*"]
+    }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
   "exclude": ["node_modules"]

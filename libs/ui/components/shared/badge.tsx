@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { BadgeVariant } from '../../types';
+import { BadgeVariant } from '@clinic/types';
 
 const variantStyles: Record<BadgeVariant, string> = {
   'status-active': 'bg-green-100 text-green-800 border-green-200',

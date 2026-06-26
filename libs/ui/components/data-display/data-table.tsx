@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { ChevronUp, ChevronDown, MoreVertical } from 'lucide-react';
-import { ColumnDef, PaginatedResponse } from '../../types';
+import { ColumnDef, PaginatedResponse } from '@clinic/types';
 import { LoadingSkeleton } from '../feedback/skeleton';
 
 interface DataTableProps<T = any> {
