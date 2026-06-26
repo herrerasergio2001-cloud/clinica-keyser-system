@@ -44,4 +44,4 @@ EXPOSE 3001
 
 # Apply pending production migrations before starting the API. Prisma migrate
 # deploy is additive/idempotent and never resets or seeds the database.
-CMD ["sh", "-c", "cd /app && ./node_modules/.bin/prisma migrate deploy --schema=./database/prisma/schema.prisma && exec node apps/api/dist/main.js"]
+CMD ["sh", "-c", "cd /app && ./node_modules/.bin/prisma migrate resolve --rolled-back 20260625100000_partial_indexes_soft_delete --schema=./database/prisma/schema.prisma 2>/dev/null || true; ./node_modules/.bin/prisma migrate deploy --schema=./database/prisma/schema.prisma && exec node apps/api/dist/main.js"]
