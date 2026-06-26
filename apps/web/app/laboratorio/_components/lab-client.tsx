@@ -96,9 +96,27 @@ function Shell({ title, children }: { title: string; children: React.ReactNode }
 
 export function LabDashboard() {
 
-  const [data, setData] = useState<any>();
-  useEffect(() => void api('/api/laboratory/dashboard', {}).then(setData).catch(() => undefined), []);
-  return <Shell title="Panel"><div className="grid gap-4 md:grid-cols-4"><Metric icon={ClipboardList} label="Órdenes" value={data?.orders ?? '...'} /><Metric icon={TestTube2} label="Urgentes" value={data?.urgent ?? '...'} /><Metric icon={Beaker} label="Alertas reactivos" value={data?.reagents?.length ?? '...'} /><Link href="/laboratorio/ordenes/nueva" className="rounded-lg bg-clinic-teal p-4 text-white"><FilePlus2 className="mb-2 h-5 w-5" />Nueva orden</Link></div><OrderList orders={data?.recent ?? []} /></Shell>;
+  const [data, setData] = useState<any>(null);
+  const [error, setError] = useState<string>('');
+  useEffect(() => {
+    api('/api/laboratory/dashboard', {})
+      .then(setData)
+      .catch((err) => {
+        setError('No se pudo cargar el panel del laboratorio');
+        console.error('Dashboard error:', err);
+      });
+  }, []);
+
+  if (error) {
+    return <Shell title="Panel"><div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-100">{error}</div></Shell>;
+  }
+
+  const orders = data?.orders ?? 0;
+  const urgent = data?.urgent ?? 0;
+  const reagentAlerts = data?.reagents?.length ?? 0;
+  const recentOrders = Array.isArray(data?.recent) ? data.recent : [];
+
+  return <Shell title="Panel"><div className="grid gap-4 md:grid-cols-4"><Metric icon={ClipboardList} label="Órdenes" value={orders} /><Metric icon={TestTube2} label="Urgentes" value={urgent} /><Metric icon={Beaker} label="Alertas reactivos" value={reagentAlerts} /><Link href="/laboratorio/ordenes/nueva" className="rounded-lg bg-clinic-teal p-4 text-white"><FilePlus2 className="mb-2 h-5 w-5" />Nueva orden</Link></div><OrderList orders={recentOrders} /></Shell>;
 }
 
 function Metric({ icon: Icon, label, value }: { icon: React.ComponentType<{ className?: string }>; label: string; value: string | number }) {
@@ -114,6 +132,10 @@ export function OrdersPage() {
   const load = () => api<Order[]>(`/api/laboratory/orders?status=${status}`, {}).then(setOrders).catch(() => undefined);
   useEffect(() => void load(), [status]);
   async function cancel(order: Order) {
+    if (!order?.patient) {
+      window.alert('Información de paciente no disponible');
+      return;
+    }
     if (!window.confirm(`¿Anular la orden de ${order.patient.fullName}?`)) return;
     const reason = window.prompt('Motivo de anulación:');
     if (!reason?.trim()) return;
@@ -121,6 +143,10 @@ export function OrdersPage() {
     await load();
   }
   async function deleteOrder(order: Order) {
+    if (!order?.patient) {
+      window.alert('Información de paciente no disponible');
+      return;
+    }
     if (!window.confirm(`¿Eliminar definitivamente la orden de ${order.patient.fullName}? Esta acción no se puede deshacer.`)) return;
     const reason = window.prompt('Motivo de eliminación definitiva:');
     if (!reason?.trim()) return;
@@ -131,7 +157,13 @@ export function OrdersPage() {
 }
 
 function OrderList({ orders, onCancel, onDelete }: { orders: Order[]; onCancel?: (order: Order) => void; onDelete?: (order: Order) => void }) {
-  return <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">{orders.map((order) => <article key={order.id} className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900"><div className="flex flex-wrap justify-between gap-2"><div><strong>{order.orderType}</strong><p className="text-sm text-slate-500">{order.patient?.fullName} · {order.patient?.patientCode}</p></div><span className="rounded-full bg-teal-50 px-3 py-1 text-sm text-teal-800">{statusLabel(order.status)}</span></div><div className="mt-3 grid grid-cols-2 gap-2 text-sm"><span>Fecha: {new Date(order.createdAt).toLocaleDateString('es-NI')}</span><span>Prioridad: {priorityLabel(order.priority)}</span></div><div className="mt-4 flex flex-wrap gap-2"><Link href={`/laboratorio/resultados/${order.id}`} className="rounded-md border border-slate-200 px-3 py-2 text-sm dark:border-slate-700">Abrir</Link>{order.status !== 'CANCELLED' && <Link href={`/laboratorio/resultados/${order.id}`} className="rounded-md bg-clinic-teal px-3 py-2 text-sm font-medium text-white">Resultado</Link>}{onCancel && order.status !== 'CANCELLED' && <button onClick={() => void onCancel(order)} className="inline-flex items-center gap-1 rounded-md border border-amber-200 px-3 py-2 text-sm text-amber-700"><XCircle className="h-4 w-4" />Anular</button>}{onDelete && <button onClick={() => void onDelete(order)} className="inline-flex items-center gap-1 rounded-md border border-red-200 px-3 py-2 text-sm text-red-700"><Trash2 className="h-4 w-4" />Eliminar</button>}</div></article>)}</div>;
+  if (!orders || !Array.isArray(orders)) return <div className="mt-5 text-center text-slate-500">No hay órdenes disponibles</div>;
+  return <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">{orders.map((order) => {
+    if (!order?.id) return null;
+    const patientName = order.patient?.fullName ?? 'Paciente desconocido';
+    const patientCode = order.patient?.patientCode ?? '-';
+    return <article key={order.id} className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900"><div className="flex flex-wrap justify-between gap-2"><div><strong>{order.orderType ?? 'Orden'}</strong><p className="text-sm text-slate-500">{patientName} · {patientCode}</p></div><span className="rounded-full bg-teal-50 px-3 py-1 text-sm text-teal-800">{statusLabel(order.status)}</span></div><div className="mt-3 grid grid-cols-2 gap-2 text-sm"><span>Fecha: {order.createdAt ? new Date(order.createdAt).toLocaleDateString('es-NI') : '-'}</span><span>Prioridad: {priorityLabel(order.priority)}</span></div><div className="mt-4 flex flex-wrap gap-2"><Link href={`/laboratorio/resultados/${order.id}`} className="rounded-md border border-slate-200 px-3 py-2 text-sm dark:border-slate-700">Abrir</Link>{order.status !== 'CANCELLED' && <Link href={`/laboratorio/resultados/${order.id}`} className="rounded-md bg-clinic-teal px-3 py-2 text-sm font-medium text-white">Resultado</Link>}{onCancel && order.status !== 'CANCELLED' && <button onClick={() => void onCancel(order)} className="inline-flex items-center gap-1 rounded-md border border-amber-200 px-3 py-2 text-sm text-amber-700"><XCircle className="h-4 w-4" />Anular</button>}{onDelete && <button onClick={() => void onDelete(order)} className="inline-flex items-center gap-1 rounded-md border border-red-200 px-3 py-2 text-sm text-red-700"><Trash2 className="h-4 w-4" />Eliminar</button>}</div></article>;
+  })}</div>;
 }
 
 export function NewOrderPage() {
@@ -177,7 +209,7 @@ export function ResultPage({ orderId }: { orderId: string }) {
       setMessage('No se pudo guardar el resultado');
     }
   }
-  return <Shell title="Ingresar resultado"><div className="rounded-lg border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">{message && <p className="mb-3 rounded-md bg-teal-50 p-3 text-sm text-teal-900 dark:bg-teal-950 dark:text-teal-100">{message}</p>}<p className="mb-3 text-sm text-slate-500">{order?.patient.fullName} · {order?.orderType}</p><label className="mb-4 grid max-w-md gap-1 text-sm font-medium">Plantilla<select value={templateId} onChange={(e) => setTemplateId(e.target.value)} className="h-10 rounded-md border px-3 dark:bg-slate-950">{templates.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}</select></label><div className="grid gap-3 md:grid-cols-2">{template?.analytes.map((a) => <div key={a.id} className="grid gap-1"><Input label={`${a.name} ${a.unit ? `(${a.unit})` : ''}`} value={values[a.id] ?? ''} onChange={(v) => setValues((x) => ({ ...x, [a.id]: v }))} /><span className="text-xs text-slate-500">Referencia: {referenceLabel(a)} · {flagLabel(values[a.id], a)}</span></div>)}</div><div className="mt-4 flex flex-wrap gap-2"><button onClick={save} className="rounded-md bg-clinic-teal px-4 py-2 text-white">Guardar resultado</button>{result && <a href={`${apiBase}/api/laboratory/results/${result.id}/pdf`} className="inline-flex items-center gap-2 rounded-md border border-slate-200 px-4 py-2 text-clinic-teal dark:border-slate-700"><Download className="h-4 w-4" />Exportar PDF</a>}{result && <button onClick={() => printLabResult(order, template, values)} className="inline-flex items-center gap-2 rounded-md border border-slate-200 px-4 py-2 dark:border-slate-700"><Printer className="h-4 w-4" />Imprimir</button>}</div></div></Shell>;
+  return <Shell title="Ingresar resultado"><div className="rounded-lg border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">{message && <p className="mb-3 rounded-md bg-teal-50 p-3 text-sm text-teal-900 dark:bg-teal-950 dark:text-teal-100">{message}</p>}{order?.patient ? <p className="mb-3 text-sm text-slate-500">{order.patient.fullName} · {order.orderType}</p> : <p className="mb-3 text-sm text-slate-500">Información de orden no disponible</p>}<label className="mb-4 grid max-w-md gap-1 text-sm font-medium">Plantilla<select value={templateId} onChange={(e) => setTemplateId(e.target.value)} className="h-10 rounded-md border px-3 dark:bg-slate-950">{templates?.length > 0 ? templates.map((t) => <option key={t.id} value={t.id}>{t.name}</option>) : <option>No hay plantillas disponibles</option>}</select></label><div className="grid gap-3 md:grid-cols-2">{template && Array.isArray(template.analytes) ? template.analytes.map((a) => <div key={a.id} className="grid gap-1"><Input label={`${a.name} ${a.unit ? `(${a.unit})` : ''}`} value={values[a.id] ?? ''} onChange={(v) => setValues((x) => ({ ...x, [a.id]: v }))} /><span className="text-xs text-slate-500">Referencia: {referenceLabel(a)} · {flagLabel(values[a.id], a)}</span></div>) : <div className="col-span-2 text-sm text-slate-500">Selecciona una plantilla para comenzar</div>}</div><div className="mt-4 flex flex-wrap gap-2"><button onClick={save} className="rounded-md bg-clinic-teal px-4 py-2 text-white">Guardar resultado</button>{result && <a href={`${apiBase}/api/laboratory/results/${result.id}/pdf`} className="inline-flex items-center gap-2 rounded-md border border-slate-200 px-4 py-2 text-clinic-teal dark:border-slate-700"><Download className="h-4 w-4" />Exportar PDF</a>}{result && <button onClick={() => printLabResult(order, template, values)} className="inline-flex items-center gap-2 rounded-md border border-slate-200 px-4 py-2 dark:border-slate-700"><Printer className="h-4 w-4" />Imprimir</button>}</div></div></Shell>;
 }
 
 export function TemplatesPage() {
@@ -202,7 +234,11 @@ export function TemplatesPage() {
       setMessage('No se pudo guardar el valor de referencia');
     }
   }
-  return <Shell title="Plantillas">{message && <p className="mb-3 rounded-md bg-teal-50 p-3 text-sm text-teal-900 dark:bg-teal-950 dark:text-teal-100">{message}</p>}<div className="grid gap-3 xl:grid-cols-2">{templates.map((t) => <article key={t.id} className="rounded-lg border bg-white p-4 dark:border-slate-800 dark:bg-slate-900"><div className="flex flex-wrap items-start justify-between gap-3"><div><strong>{t.name}</strong><p className="text-sm text-slate-500">{t.category} · {t.analytes.length} analitos</p></div><Link href="/laboratorio/ordenes/nueva" className="rounded-md bg-clinic-teal px-3 py-2 text-sm font-medium text-white">Usar plantilla</Link></div><div className="mt-3 grid gap-2 text-sm">{t.analytes.slice(0, 8).map((a) => <div key={a.id} className="flex items-center justify-between gap-3 rounded-md bg-slate-50 px-3 py-2 dark:bg-slate-950"><span>{a.name}</span><span className="text-slate-500">{a.unit ?? '-'} · {referenceLabel(a)}</span><button type="button" onClick={() => void editAnalyte(a)} className="rounded-md border border-slate-200 px-2 py-1 text-xs dark:border-slate-700">Editar</button></div>)}</div></article>)}</div></Shell>;
+  return <Shell title="Plantillas">{message && <p className="mb-3 rounded-md bg-teal-50 p-3 text-sm text-teal-900 dark:bg-teal-950 dark:text-teal-100">{message}</p>}{templates?.length > 0 ? <div className="grid gap-3 xl:grid-cols-2">{templates.map((t) => {
+    if (!t?.id) return null;
+    const analytes = Array.isArray(t.analytes) ? t.analytes : [];
+    return <article key={t.id} className="rounded-lg border bg-white p-4 dark:border-slate-800 dark:bg-slate-900"><div className="flex flex-wrap items-start justify-between gap-3"><div><strong>{t.name}</strong><p className="text-sm text-slate-500">{t.category} · {analytes.length} analitos</p></div><Link href="/laboratorio/ordenes/nueva" className="rounded-md bg-clinic-teal px-3 py-2 text-sm font-medium text-white">Usar plantilla</Link></div><div className="mt-3 grid gap-2 text-sm">{analytes.slice(0, 8).map((a) => <div key={a.id} className="flex items-center justify-between gap-3 rounded-md bg-slate-50 px-3 py-2 dark:bg-slate-950"><span>{a.name}</span><span className="text-slate-500">{a.unit ?? '-'} · {referenceLabel(a)}</span><button type="button" onClick={() => void editAnalyte(a)} className="rounded-md border border-slate-200 px-2 py-1 text-xs dark:border-slate-700">Editar</button></div>)}</div></article>;
+  })}</div> : <div className="rounded-lg border border-slate-200 bg-white p-4 text-center text-slate-500 dark:border-slate-800 dark:bg-slate-900">No hay plantillas disponibles</div>}</Shell>;
 }
 
 export function ReagentsPage({ expiring = false }: { expiring?: boolean }) {
@@ -221,7 +257,10 @@ export function ReagentsPage({ expiring = false }: { expiring?: boolean }) {
     setMessage('Movimiento guardado correctamente');
     window.setTimeout(() => window.location.reload(), 500);
   }
-  return <Shell title={expiring ? 'Reactivos por vencer' : 'Reactivos'}>{message && <p className="mb-3 rounded-md bg-teal-50 p-3 text-sm text-teal-900 dark:bg-teal-950 dark:text-teal-100">{message}</p>}{!expiring && <form onSubmit={save} className="mb-5 grid gap-3 rounded-lg border bg-white p-4 dark:border-slate-800 dark:bg-slate-900 md:grid-cols-4">{Object.keys(form).map((k) => <Input key={k} type={k === 'expiresAt' ? 'date' : ['quantity','minimumStock'].includes(k) ? 'number' : 'text'} label={reagentLabels[k] ?? k} value={form[k]} onChange={(v) => setForm((f: any) => ({ ...f, [k]: v }))} />)}<button className="rounded-md bg-clinic-teal px-4 text-white">Guardar reactivo</button></form>}<div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">{items.map((r) => <article key={r.id} className="rounded-lg border bg-white p-4 dark:border-slate-800 dark:bg-slate-900"><strong>{r.name}</strong><p className="text-sm text-slate-500">{r.brand} · lote {r.batchNumber} · vence {r.expiresAt ? new Date(r.expiresAt).toLocaleDateString('es-NI') : '-'}</p><span className="text-sm">Stock: {r.quantity} {r.unit}</span>{!expiring && <div className="mt-3 flex flex-wrap gap-2">{['ENTRY','USE','ADJUSTMENT','DISCARD','EXPIRATION'].map((type) => <button key={type} onClick={() => void move(r, type)} className="rounded-md border border-slate-200 px-2 py-1 text-xs dark:border-slate-700">{movementLabel(type)}</button>)}</div>}</article>)}</div></Shell>;
+  return <Shell title={expiring ? 'Reactivos por vencer' : 'Reactivos'}>{message && <p className="mb-3 rounded-md bg-teal-50 p-3 text-sm text-teal-900 dark:bg-teal-950 dark:text-teal-100">{message}</p>}{!expiring && <form onSubmit={save} className="mb-5 grid gap-3 rounded-lg border bg-white p-4 dark:border-slate-800 dark:bg-slate-900 md:grid-cols-4">{Object.keys(form).map((k) => <Input key={k} type={k === 'expiresAt' ? 'date' : ['quantity','minimumStock'].includes(k) ? 'number' : 'text'} label={reagentLabels[k] ?? k} value={form[k]} onChange={(v) => setForm((f: any) => ({ ...f, [k]: v }))} />)}<button className="rounded-md bg-clinic-teal px-4 text-white">Guardar reactivo</button></form>}{Array.isArray(items) && items.length > 0 ? <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">{items.map((r) => {
+    if (!r?.id) return null;
+    return <article key={r.id} className="rounded-lg border bg-white p-4 dark:border-slate-800 dark:bg-slate-900"><strong>{r.name ?? 'Reactivo'}</strong><p className="text-sm text-slate-500">{r.brand ?? '-'} · lote {r.batchNumber ?? '-'} · vence {r.expiresAt ? new Date(r.expiresAt).toLocaleDateString('es-NI') : '-'}</p><span className="text-sm">Stock: {r.quantity ?? 0} {r.unit ?? ''}</span>{!expiring && <div className="mt-3 flex flex-wrap gap-2">{['ENTRY','USE','ADJUSTMENT','DISCARD','EXPIRATION'].map((type) => <button key={type} onClick={() => void move(r, type)} className="rounded-md border border-slate-200 px-2 py-1 text-xs dark:border-slate-700">{movementLabel(type)}</button>)}</div>}</article>;
+  })}</div> : <div className="rounded-lg border border-slate-200 bg-white p-4 text-center text-slate-500 dark:border-slate-800 dark:bg-slate-900">No hay reactivos {expiring ? 'por vencer' : 'disponibles'}</div>}</Shell>;
 }
 
 function statusLabel(status: string) {
