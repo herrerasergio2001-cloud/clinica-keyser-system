@@ -258,12 +258,24 @@ export class MedicalRecordsRepository {
     return this.prisma.medicalAttachment.update({ where: { id }, data: { isDeleted: true } });
   }
 
+  private clinicalResourceDelegate(model: ClinicalResourceModel) {
+    const map = {
+      vaccineRecord: this.prisma.vaccineRecord,
+      pregnancyControl: this.prisma.pregnancyControl,
+      dentalFinding: this.prisma.dentalFinding,
+      labOrder: this.prisma.labOrder,
+      imagingOrder: this.prisma.imagingOrder,
+      clinicalDocument: this.prisma.clinicalDocument,
+    } as const;
+    return map[model] as { findMany: (args: unknown) => Promise<unknown[]>; create: (args: unknown) => Promise<unknown> };
+  }
+
   listClinicalResource(model: ClinicalResourceModel, medicalRecordId: string) {
-    return (this.prisma[model] as any).findMany({ where: { medicalRecordId }, orderBy: { createdAt: 'desc' } });
+    return this.clinicalResourceDelegate(model).findMany({ where: { medicalRecordId }, orderBy: { createdAt: 'desc' } });
   }
 
   createClinicalResource(model: ClinicalResourceModel, data: Record<string, unknown>) {
-    return (this.prisma[model] as any).create({ data });
+    return this.clinicalResourceDelegate(model).create({ data });
   }
 
   createClinicalEvent(data: Prisma.ClinicalEventCreateInput) {

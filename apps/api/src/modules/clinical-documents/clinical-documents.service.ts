@@ -642,12 +642,21 @@ export class ClinicalDocumentsService {
     return candidates.find((path) => existsSync(path));
   }
 
+  private readonly numberCheckDelegates: Record<string, { findFirst: (args: { where: Record<string, string> }) => Promise<unknown> }> = {
+    prescription: { findFirst: (args) => this.prisma.prescription.findFirst(args) },
+    labOrderExternal: { findFirst: (args) => this.prisma.labOrderExternal.findFirst(args) },
+    imagingOrder: { findFirst: (args) => this.prisma.imagingOrder.findFirst(args) },
+    medicalCertificate: { findFirst: (args) => this.prisma.medicalCertificate.findFirst(args) },
+    consentDocument: { findFirst: (args) => this.prisma.consentDocument.findFirst(args) },
+  };
+
   private async nextNumber(key: string, prefix: string, model?: string, field?: string) {
     for (let attempt = 0; attempt < 50; attempt += 1) {
       const counter = await this.prisma.counter.upsert({ where: { key }, update: { value: { increment: 1 } }, create: { key, value: 1 } });
       const candidate = `${prefix}-${String(counter.value).padStart(6, '0')}`;
       if (!model || !field) return candidate;
-      const existing = await (this.prisma as any)[model].findFirst({ where: { [field]: candidate } });
+      const delegate = this.numberCheckDelegates[model];
+      const existing = delegate ? await delegate.findFirst({ where: { [field]: candidate } }) : null;
       if (!existing) return candidate;
     }
     throw new BadRequestException('No se pudo generar numeración única');

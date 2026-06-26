@@ -594,14 +594,14 @@ export class MedicalRecordsService {
     ipAddress?: string,
   ) {
     const record = await this.findById(medicalRecordId);
-    const created = await this.records.createClinicalResource(model, {
+    const created = (await this.records.createClinicalResource(model, {
       ...values,
       medicalRecordId,
       patientId: record.patientId,
       doctorId: record.doctorId,
       createdById: actor.sub,
       updatedById: actor.sub,
-    });
+    })) as { id: string };
     await this.recordClinicalEvent({
       patientId: record.patientId,
       medicalRecordId,
