@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { IsBoolean, IsDateString, IsInt, IsOptional, IsString, Min } from 'class-validator';
+import { IsBoolean, IsDateString, IsEmail, IsInt, IsOptional, IsString, Min } from 'class-validator';
 
 export class UpdatePublicSettingsDto {
   @IsOptional()
@@ -225,4 +225,89 @@ export class PublicTeamMemberDto {
   @IsInt()
   @Min(0)
   sortOrder?: number;
+}
+
+export class PublicTestimonialDto {
+  id!: string;
+
+  quote!: string;
+
+  patientName!: string;
+
+  service!: string;
+
+  rating!: number;
+
+  photoUrl?: string;
+}
+
+export class PublicPricingPlanDto {
+  id!: string;
+
+  name!: string;
+
+  kicker!: string;
+
+  description!: string;
+
+  price!: string;
+
+  currency!: string;
+
+  unit!: string;
+
+  category!: string;
+
+  features!: string[];
+
+  isFeatured!: boolean;
+}
+
+export class PublicProcedureDto {
+  id!: string;
+
+  name!: string;
+
+  description!: string;
+
+  specialty!: string;
+
+  icon?: string;
+
+  imageUrl?: string;
+}
+
+export class CreatePublicBookingRequestDto {
+  @IsString()
+  service!: string;
+
+  @IsDateString()
+  requestedDate!: string;
+
+  @IsOptional()
+  @IsString()
+  requestedTime?: string;
+
+  @IsString()
+  patientName!: string;
+
+  @IsString()
+  patientPhone!: string;
+
+  @IsEmail()
+  patientEmail!: string;
+
+  @IsOptional()
+  @IsString()
+  patientNotes?: string;
+}
+
+export class PublicBookingRequestResponseDto {
+  id!: string;
+
+  status!: string;
+
+  respondedAt?: Date;
+
+  responseNotes?: string;
 }
