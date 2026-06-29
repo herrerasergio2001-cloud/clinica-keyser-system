@@ -1,0 +1,1237 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="/keyser-prototype/support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=Newsreader:ital,opsz,wght@1,6..72,400;1,6..72,500&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{margin:0;font-family:'Hanken Grotesk',system-ui,sans-serif;color:#1B2A57;background:#FBFCFE;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;}
+  ::selection{background:#ED3237;color:#fff;}
+  input,button,textarea,select{font-family:inherit;}
+  @keyframes kFade{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:none;}}
+</style>
+</helmet>
+
+<div style="overflow-x:hidden;">
+
+<!-- ===== HEADER ===== -->
+<header style="position:sticky;top:0;z-index:90;background:rgba(251,252,254,.85);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid #E7ECF4;">
+  <div style="max-width:1220px;margin:0 auto;padding:13px 24px;display:flex;align-items:center;gap:24px;">
+    <a href="#top" onClick="{{ goTop }}" style="display:flex;align-items:center;gap:11px;text-decoration:none;flex-shrink:0;">
+      <img src="/keyser-prototype/assets/logo-keyser.png" alt="Clínica Keyser" style="width:42px;height:42px;display:block;" />
+      <span style="display:flex;flex-direction:column;line-height:1;">
+        <span style="font-weight:800;font-size:18px;letter-spacing:-.02em;color:#1B2A57;">Clínica Keyser</span>
+        <span style="font-size:10.5px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:#9aa3bd;margin-top:3px;">{{ t.tagline }}</span>
+      </span>
+    </a>
+
+    <sc-if value="{{ isDesktop }}" hint-placeholder-val="{{ true }}">
+      <div style="position:relative;margin-left:auto;">
+        <button onClick="{{ toggleMenu }}" aria-label="Secciones" style="display:flex;align-items:center;gap:9px;border:1px solid #DCE3F0;background:#fff;cursor:pointer;color:#1B2A57;font-weight:600;font-size:14.5px;padding:10px 16px;border-radius:10px;" style-hover="border-color:#1B2A57;">
+          <span style="display:flex;flex-direction:column;gap:3px;width:15px;">
+            <span style="width:100%;height:2px;background:currentColor;border-radius:2px;"></span>
+            <span style="width:100%;height:2px;background:currentColor;border-radius:2px;"></span>
+            <span style="width:100%;height:2px;background:currentColor;border-radius:2px;"></span>
+          </span>
+          {{ t.menuLabel }}
+          <span style="{{ menuChevron }}">⌄</span>
+        </button>
+        <sc-if value="{{ menuOpen }}" hint-placeholder-val="{{ false }}">
+          <div onClick="{{ closeMenu }}" style="position:fixed;inset:0;z-index:94;"></div>
+          <div style="position:absolute;top:calc(100% + 10px);left:0;min-width:236px;background:#fff;border:1px solid #E7ECF4;border-radius:14px;box-shadow:0 18px 44px rgba(27,42,87,.16);padding:8px;z-index:95;animation:kFade .15s ease;">
+            <sc-for list="{{ navLinks }}" as="n" hint-placeholder-count="6">
+              <a href="#" onClick="{{ n.go }}" style="display:flex;align-items:center;gap:10px;text-decoration:none;color:#1B2A57;font-weight:600;font-size:15px;padding:11px 13px;border-radius:9px;" style-hover="background:#EEF2FA;color:#ED3237;">
+                <span style="width:6px;height:6px;border-radius:50%;background:#ED3237;flex-shrink:0;"></span>{{ n.label }}
+              </a>
+            </sc-for>
+          </div>
+        </sc-if>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <button onClick="{{ openPriv }}" aria-label="Acceso privado" title="{{ t.privAccess }}" style="border:1px solid #DCE3F0;background:#fff;cursor:pointer;width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;color:#48527a;" style-hover="border-color:#1B2A57;color:#1B2A57;">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="4" y="10.5" width="16" height="10" rx="2.5" fill="currentColor"></rect><path d="M7.5 10.5V7.5a4.5 4.5 0 0 1 9 0v3" stroke="currentColor" stroke-width="2"></path></svg>
+        </button>
+        <div style="display:flex;background:#EEF2FA;border-radius:999px;padding:3px;">
+          <button onClick="{{ setLangEs }}" style="{{ esBtn }}">ES</button>
+          <button onClick="{{ setLangEn }}" style="{{ enBtn }}">EN</button>
+        </div>
+        <button onClick="{{ goBook }}" style="border:none;cursor:pointer;background:#ED3237;color:#fff;font-weight:700;font-size:14.5px;padding:11px 20px;border-radius:999px;box-shadow:0 6px 18px rgba(237,50,55,.28);" style-hover="background:#d62a2f;">{{ t.book }}</button>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isMobile }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;align-items:center;gap:10px;margin-left:auto;">
+        <div style="display:flex;background:#EEF2FA;border-radius:999px;padding:3px;">
+          <button onClick="{{ setLangEs }}" style="{{ esBtn }}">ES</button>
+          <button onClick="{{ setLangEn }}" style="{{ enBtn }}">EN</button>
+        </div>
+        <button onClick="{{ toggleNav }}" aria-label="Menú" style="border:1px solid #DCE3F0;background:#fff;cursor:pointer;width:44px;height:44px;border-radius:11px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;">
+          <span style="width:18px;height:2px;background:#1B2A57;border-radius:2px;"></span>
+          <span style="width:18px;height:2px;background:#1B2A57;border-radius:2px;"></span>
+          <span style="width:18px;height:2px;background:#1B2A57;border-radius:2px;"></span>
+        </button>
+      </div>
+    </sc-if>
+  </div>
+
+  <sc-if value="{{ showMobileMenu }}" hint-placeholder-val="{{ false }}">
+    <div style="border-top:1px solid #E7ECF4;background:#fff;padding:10px 24px 18px;animation:kFade .2s ease;">
+      <sc-for list="{{ navLinks }}" as="n" hint-placeholder-count="5">
+        <a href="#" onClick="{{ n.go }}" style="display:block;text-decoration:none;color:#1B2A57;font-weight:600;font-size:16px;padding:13px 4px;border-bottom:1px solid #F0F3F9;">{{ n.label }}</a>
+      </sc-for>
+      <button onClick="{{ goBook }}" style="margin-top:14px;width:100%;border:none;cursor:pointer;background:#ED3237;color:#fff;font-weight:700;font-size:16px;padding:14px;border-radius:12px;">{{ t.book }}</button>
+      <button onClick="{{ openPriv }}" style="margin-top:10px;width:100%;border:1px solid #DCE3F0;cursor:pointer;background:#fff;color:#1B2A57;font-weight:700;font-size:15px;padding:13px;border-radius:12px;display:flex;align-items:center;justify-content:center;gap:9px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="4" y="10.5" width="16" height="10" rx="2.5" fill="currentColor"></rect><path d="M7.5 10.5V7.5a4.5 4.5 0 0 1 9 0v3" stroke="currentColor" stroke-width="2"></path></svg>{{ t.privAccess }}</button>
+    </div>
+  </sc-if>
+</header>
+
+<main id="top">
+
+<!-- ===== HERO ===== -->
+<section data-screen-label="Inicio" style="position:relative;background:linear-gradient(180deg,#FBFCFE 0%,#F1F5FC 100%);">
+  <div style="max-width:1220px;margin:0 auto;padding:clamp(48px,7vw,90px) 24px clamp(56px,7vw,96px);display:flex;flex-wrap:wrap;gap:clamp(36px,5vw,64px);align-items:center;">
+    <div style="flex:1 1 420px;min-width:300px;">
+      <div style="display:inline-flex;align-items:center;gap:8px;background:#fff;border:1px solid #E2E8F4;border-radius:999px;padding:7px 14px;font-size:12.5px;font-weight:600;color:#48527a;box-shadow:0 2px 10px rgba(27,42,87,.05);">
+        <span style="width:7px;height:7px;border-radius:50%;background:#2bb673;display:inline-block;"></span>{{ t.heroBadge }}
+      </div>
+      <h1 style="font-size:clamp(38px,5.4vw,62px);line-height:1.04;letter-spacing:-.025em;font-weight:800;margin:22px 0 0;color:#1B2A57;">{{ t.heroL1 }} <span style="font-family:'Newsreader',serif;font-style:italic;font-weight:500;color:#ED3237;">{{ t.heroL2 }}</span> {{ t.heroL3 }}</h1>
+      <p style="font-size:clamp(16px,1.7vw,19px);line-height:1.6;color:#56608a;max-width:520px;margin:22px 0 0;">{{ t.heroSub }}</p>
+      <div style="display:flex;flex-wrap:wrap;gap:13px;margin-top:30px;">
+        <button onClick="{{ goBook }}" style="border:none;cursor:pointer;background:#ED3237;color:#fff;font-weight:700;font-size:16px;padding:15px 28px;border-radius:999px;box-shadow:0 10px 26px rgba(237,50,55,.3);" style-hover="background:#d62a2f;transform:translateY(-1px);">{{ t.heroCta }}</button>
+        <a href="{{ waLink }}" target="_blank" style="display:inline-flex;align-items:center;gap:9px;text-decoration:none;background:#fff;border:1px solid #DCE3F0;color:#1B2A57;font-weight:700;font-size:16px;padding:15px 24px;border-radius:999px;" style-hover="border-color:#25D366;color:#1a9e4b;">
+          <span style="width:22px;height:22px;border-radius:50%;background:#25D366;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="14" height="14" viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M19.05 4.91A9.816 9.816 0 0 0 12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21h.004c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01zM12.04 20.15h-.003a8.2 8.2 0 0 1-4.18-1.15l-.3-.18-3.11.82.83-3.04-.2-.31a8.2 8.2 0 0 1-1.26-4.38c0-4.54 3.7-8.24 8.25-8.24 2.2 0 4.27.86 5.82 2.42a8.18 8.18 0 0 1 2.41 5.83c0 4.54-3.7 8.23-8.24 8.23zm4.52-6.16c-.25-.12-1.47-.72-1.69-.81-.23-.08-.39-.12-.56.12-.16.25-.64.81-.78.97-.14.17-.29.19-.54.06-.25-.12-1.05-.39-1.99-1.23-.74-.66-1.23-1.47-1.38-1.72-.14-.25-.01-.38.11-.5.11-.11.25-.29.37-.43.13-.14.17-.25.25-.41.08-.17.04-.31-.02-.43-.06-.12-.56-1.34-.76-1.84-.2-.48-.41-.42-.56-.43-.14-.01-.31-.01-.48-.01-.17 0-.43.06-.66.31-.22.25-.86.85-.86 2.07 0 1.22.89 2.4 1.01 2.56.12.17 1.75 2.67 4.23 3.74.59.26 1.05.41 1.41.52.59.19 1.13.16 1.56.1.48-.07 1.47-.6 1.67-1.18.21-.58.21-1.07.14-1.18-.06-.11-.22-.17-.47-.29z"></path></svg></span>{{ t.heroWa }}
+        </a>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:24px;margin-top:34px;">
+        <sc-for list="{{ heroPoints }}" as="p" hint-placeholder-count="3">
+          <div style="display:flex;align-items:center;gap:9px;">
+            <span style="width:22px;height:22px;border-radius:50%;background:#E7F6EE;color:#2bb673;display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;">✓</span>
+            <span style="font-size:14px;font-weight:600;color:#48527a;">{{ p }}</span>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+    <div style="flex:1 1 380px;min-width:300px;position:relative;">
+      <div style="position:relative;border-radius:24px;overflow:hidden;box-shadow:0 30px 60px rgba(27,42,87,.16);aspect-ratio:4/5;background:#e1e8f4;">
+        <video id="heroVideo" src="/keyser-prototype/assets/clinica.mp4" autoplay muted loop playsinline style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;"></video>
+      </div>
+      <div style="position:absolute;left:-8px;bottom:26px;background:#fff;border:1px solid #EAEFF7;border-radius:16px;padding:16px 18px;box-shadow:0 14px 34px rgba(27,42,87,.14);min-width:228px;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="width:8px;height:8px;border-radius:50%;background:#2bb673;display:inline-block;"></span>
+          <span style="font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#1B2A57;">{{ t.hoursLabel }}</span>
+        </div>
+        <div style="margin-top:12px;display:flex;flex-direction:column;gap:6px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:18px;">
+            <span style="font-size:13px;color:#7b84a3;">{{ t.hoursWeekDay }}</span>
+            <span style="font-size:13.5px;font-weight:700;color:#1B2A57;">{{ t.hoursWeekTime }}</span>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:18px;">
+            <span style="font-size:13px;color:#7b84a3;">{{ t.hoursSatDay }}</span>
+            <span style="font-size:13.5px;font-weight:700;color:#1B2A57;">{{ t.hoursSatTime }}</span>
+          </div>
+        </div>
+        <div style="margin-top:13px;padding-top:12px;border-top:1px solid #F0F3F9;display:flex;align-items:center;gap:8px;">
+          <span style="width:18px;height:18px;border-radius:6px;background:#FDECEC;color:#ED3237;display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;flex-shrink:0;">+</span>
+          <span style="font-size:12.5px;font-weight:600;color:#ED3237;">{{ t.emergencyTag }}</span>
+        </div>
+      </div>
+      <div style="position:absolute;right:-6px;top:24px;background:#1B2A57;color:#fff;border-radius:16px;padding:14px 18px;box-shadow:0 14px 34px rgba(27,42,87,.28);">
+        <div style="font-size:26px;font-weight:800;line-height:1;">+20</div>
+        <div style="font-size:12px;color:#aeb8d8;margin-top:4px;max-width:120px;">{{ t.specCount }}</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== TRUST BAR ===== -->
+<section style="background:#1B2A57;">
+  <div style="max-width:1220px;margin:0 auto;padding:clamp(28px,3.5vw,40px) 24px;display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:18px;">
+    <sc-for list="{{ trust }}" as="x" hint-placeholder-count="4">
+      <div style="display:flex;flex-direction:column;gap:4px;padding:6px 4px;">
+        <div style="font-size:clamp(20px,2.2vw,26px);font-weight:800;color:#fff;letter-spacing:-.02em;">{{ x.k }}</div>
+        <div style="font-size:13.5px;color:#a8b2d4;line-height:1.4;">{{ x.v }}</div>
+      </div>
+    </sc-for>
+  </div>
+</section>
+
+<!-- ===== SERVICIOS ===== -->
+<section id="servicios" data-screen-label="Servicios" style="max-width:1220px;margin:0 auto;padding:clamp(64px,8vw,110px) 24px;">
+  <div style="display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:18px;">
+    <div style="max-width:620px;">
+      <div style="font-size:12.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#ED3237;">{{ t.svcEyebrow }}</div>
+      <h2 style="font-size:clamp(30px,3.8vw,46px);line-height:1.08;letter-spacing:-.025em;font-weight:800;margin:12px 0 0;">{{ t.svcTitle }}</h2>
+      <p style="font-size:17px;line-height:1.6;color:#56608a;margin:16px 0 0;">{{ t.svcSub }}</p>
+    </div>
+    <div style="display:flex;background:#EEF2FA;border-radius:999px;padding:4px;">
+      <button onClick="{{ tabEstetica }}" style="{{ tabEsteticaStyle }}">{{ t.tabEstetica }}</button>
+      <button onClick="{{ tabMedico }}" style="{{ tabMedicoStyle }}">{{ t.tabMedico }}</button>
+    </div>
+  </div>
+
+  <div style="margin-top:38px;display:grid;grid-template-columns:repeat(auto-fill,minmax(252px,1fr));gap:18px;">
+    <sc-for list="{{ activeServices }}" as="s" hint-placeholder-count="9">
+      <div style="{{ s.cardStyle }}">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;">
+          <div style="width:42px;height:42px;border-radius:12px;background:{{ s.tint }};color:{{ s.ink }};display:flex;align-items:center;justify-content:center;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="{{ s.icon }}"></path></svg>
+          </div>
+          <sc-if value="{{ s.exclusive }}" hint-placeholder-val="{{ false }}">
+            <span style="font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#ED3237;background:#FDECEC;padding:5px 9px;border-radius:999px;">{{ t.exclusive }}</span>
+          </sc-if>
+        </div>
+        <h3 style="font-size:18px;font-weight:700;letter-spacing:-.01em;margin:16px 0 0;line-height:1.25;">{{ s.name }}</h3>
+        <p style="font-size:14px;line-height:1.55;color:#6b7493;margin:8px 0 0;flex:1;">{{ s.desc }}</p>
+        <button onClick="{{ s.book }}" style="margin-top:16px;align-self:flex-start;border:none;cursor:pointer;background:transparent;color:#ED3237;font-weight:700;font-size:14px;padding:0;display:inline-flex;align-items:center;gap:6px;" style-hover="gap:10px;">{{ t.bookShort }} →</button>
+      </div>
+    </sc-for>
+  </div>
+</section>
+
+<!-- ===== NOSOTROS ===== -->
+<section id="nosotros" data-screen-label="Nosotros" style="background:#F1F5FC;">
+  <div style="max-width:1220px;margin:0 auto;padding:clamp(64px,8vw,110px) 24px;display:flex;flex-wrap:wrap;gap:clamp(40px,5vw,72px);align-items:center;">
+    <div style="flex:1 1 340px;min-width:290px;position:relative;">
+      <div style="border-radius:22px;overflow:hidden;aspect-ratio:1/1;background:repeating-linear-gradient(135deg,#e3eaf6 0 16px,#dbe3f2 16px 32px);display:flex;align-items:center;justify-content:center;box-shadow:0 24px 50px rgba(27,42,87,.12);">
+        <span style="font-family:monospace;font-size:13px;color:#9aa6c2;background:rgba(255,255,255,.72);padding:8px 14px;border-radius:8px;">[ {{ t.phTeam }} ]</span>
+      </div>
+    </div>
+    <div style="flex:1 1 420px;min-width:300px;">
+      <div style="font-size:12.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#ED3237;">{{ t.aboutEyebrow }}</div>
+      <h2 style="font-size:clamp(28px,3.6vw,42px);line-height:1.1;letter-spacing:-.025em;font-weight:800;margin:12px 0 0;">{{ t.aboutTitle }}</h2>
+      <p style="font-size:16.5px;line-height:1.65;color:#56608a;margin:18px 0 0;">{{ t.aboutP1 }}</p>
+      <p style="font-size:16.5px;line-height:1.65;color:#56608a;margin:14px 0 0;">{{ t.aboutP2 }}</p>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-top:28px;">
+        <sc-for list="{{ values }}" as="v" hint-placeholder-count="4">
+          <div style="background:#fff;border:1px solid #E7ECF4;border-radius:14px;padding:16px;">
+            <div style="font-weight:800;font-size:15px;color:#1B2A57;">{{ v.t }}</div>
+            <div style="font-size:13px;color:#7b84a3;margin-top:5px;line-height:1.45;">{{ v.d }}</div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+  <div style="max-width:1220px;margin:0 auto;padding:0 24px clamp(64px,8vw,90px);">
+    <h3 style="font-size:22px;font-weight:800;letter-spacing:-.02em;margin:0 0 22px;">{{ t.teamTitle }}</h3>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:18px;">
+      <sc-for list="{{ team }}" as="m" hint-placeholder-count="4">
+        <div style="background:#fff;border:1px solid #E7ECF4;border-radius:18px;overflow:hidden;">
+          <div style="position:relative;aspect-ratio:1/1;background:#dbe3f2;overflow:hidden;">
+            <sc-if value="{{ m.photo }}" hint-placeholder-val="{{ false }}">
+              <img src="{{ m.photo }}" alt="{{ m.name }}" loading="lazy" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 18%;display:block;" />
+            </sc-if>
+            <sc-if value="{{ m.noPhoto }}" hint-placeholder-val="{{ true }}">
+              <div style="position:absolute;inset:0;background:repeating-linear-gradient(135deg,#eef2f9 0 14px,#e6ecf6 14px 28px);display:flex;align-items:center;justify-content:center;">
+                <span style="font-family:monospace;font-size:11.5px;color:#a3adc6;background:rgba(255,255,255,.7);padding:6px 11px;border-radius:7px;">[ {{ t.phPhoto }} ]</span>
+              </div>
+            </sc-if>
+          </div>
+          <div style="padding:16px 18px 20px;">
+            <div style="font-weight:700;font-size:16px;">{{ m.name }}</div>
+            <div style="font-size:13.5px;color:#ED3237;font-weight:600;margin-top:3px;">{{ m.role }}</div>
+            <div style="font-size:13px;color:#7b84a3;margin-top:7px;line-height:1.45;">{{ m.note }}</div>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+</section>
+
+<!-- ===== GINECOLOGÍA ===== -->
+<section id="ginecologia" data-screen-label="Ginecología" style="background:#F1F5FC;">
+  <div style="max-width:1220px;margin:0 auto;padding:clamp(64px,8vw,110px) 24px;">
+    <div style="max-width:660px;">
+      <div style="font-size:12.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#ED3237;">{{ t.gynEyebrow }}</div>
+      <h2 style="font-size:clamp(30px,3.8vw,46px);line-height:1.08;letter-spacing:-.025em;font-weight:800;margin:12px 0 0;">{{ t.gynTitle }}</h2>
+      <p style="font-size:17px;line-height:1.6;color:#56608a;margin:16px 0 0;">{{ t.gynSub }}</p>
+    </div>
+    <div style="margin-top:38px;display:grid;grid-template-columns:repeat(auto-fill,minmax(252px,1fr));gap:18px;">
+      <sc-for list="{{ gynProcedures }}" as="g" hint-placeholder-count="6">
+        <div style="background:#fff;border:1px solid #E7ECF4;border-radius:18px;padding:22px;display:flex;flex-direction:column;">
+          <div style="width:42px;height:42px;border-radius:12px;background:#FDECEC;color:#ED3237;display:flex;align-items:center;justify-content:center;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="{{ g.icon }}"></path></svg>
+          </div>
+          <h3 style="font-size:18px;font-weight:700;letter-spacing:-.01em;margin:16px 0 0;line-height:1.25;">{{ g.t }}</h3>
+          <p style="font-size:14px;line-height:1.55;color:#6b7493;margin:8px 0 0;">{{ g.d }}</p>
+        </div>
+      </sc-for>
+    </div>
+    <button onClick="{{ gynBook }}" style="margin-top:30px;border:none;cursor:pointer;background:#ED3237;color:#fff;font-weight:700;font-size:16px;padding:15px 28px;border-radius:999px;box-shadow:0 10px 26px rgba(237,50,55,.28);" style-hover="background:#d62a2f;transform:translateY(-1px);">{{ t.gynCta }}</button>
+  </div>
+</section>
+
+<!-- ===== PRECIOS ===== -->
+<section id="precios" data-screen-label="Precios" style="max-width:1220px;margin:0 auto;padding:clamp(64px,8vw,110px) 24px;">
+  <div style="text-align:center;max-width:620px;margin:0 auto;">
+    <div style="font-size:12.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#ED3237;">{{ t.priceEyebrow }}</div>
+    <h2 style="font-size:clamp(30px,3.8vw,46px);line-height:1.08;letter-spacing:-.025em;font-weight:800;margin:12px 0 0;">{{ t.priceTitle }}</h2>
+    <p style="font-size:17px;line-height:1.6;color:#56608a;margin:16px 0 0;">{{ t.priceSub }}</p>
+  </div>
+  <div style="margin-top:42px;display:grid;grid-template-columns:repeat(auto-fit,minmax(258px,1fr));gap:20px;align-items:stretch;">
+    <sc-for list="{{ pricing }}" as="p" hint-placeholder-count="3">
+      <div style="{{ p.cardStyle }}">
+        <sc-if value="{{ p.featured }}" hint-placeholder-val="{{ false }}">
+          <span style="position:absolute;top:18px;right:18px;font-size:10.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;background:#ED3237;color:#fff;padding:5px 11px;border-radius:999px;">{{ t.popular }}</span>
+        </sc-if>
+        <div style="font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:{{ p.label }};">{{ p.kicker }}</div>
+        <div style="display:flex;align-items:baseline;gap:7px;margin-top:14px;">
+          <span style="font-size:14px;font-weight:600;color:{{ p.muted }};">{{ t.from }}</span>
+          <span style="font-size:clamp(34px,4vw,44px);font-weight:800;letter-spacing:-.03em;color:{{ p.strong }};">{{ p.price }}</span>
+        </div>
+        <div style="font-size:13px;color:{{ p.muted }};margin-top:2px;">{{ p.unit }}</div>
+        <div style="height:1px;background:{{ p.rule }};margin:20px 0;"></div>
+        <div style="display:flex;flex-direction:column;gap:11px;flex:1;">
+          <sc-for list="{{ p.items }}" as="it" hint-placeholder-count="4">
+            <div style="display:flex;align-items:flex-start;gap:9px;font-size:14px;color:{{ p.text }};line-height:1.4;">
+              <span style="color:{{ p.check }};font-weight:800;flex-shrink:0;">✓</span>{{ it }}
+            </div>
+          </sc-for>
+        </div>
+        <button onClick="{{ p.book }}" style="{{ p.btnStyle }}">{{ t.book }}</button>
+      </div>
+    </sc-for>
+  </div>
+  <p style="text-align:center;font-size:13px;color:#9aa3bd;margin:26px auto 0;max-width:560px;">{{ t.priceNote }}</p>
+</section>
+
+<!-- ===== RESULTADOS ===== -->
+<section id="resultados" data-screen-label="Resultados" style="max-width:1220px;margin:0 auto;padding:clamp(64px,8vw,110px) 24px;">
+  <div style="display:flex;flex-wrap:wrap;gap:clamp(36px,5vw,64px);align-items:center;">
+    <div style="flex:1 1 380px;min-width:290px;order:1;">
+      <div style="font-size:12.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#ED3237;">{{ t.resultsEyebrow }}</div>
+      <h2 style="font-size:clamp(30px,3.8vw,46px);line-height:1.08;letter-spacing:-.025em;font-weight:800;margin:12px 0 0;">{{ t.resultsTitle }}</h2>
+      <div style="display:inline-flex;align-items:center;gap:8px;margin-top:18px;background:#FDECEC;border-radius:999px;padding:7px 14px;">
+        <span style="width:16px;height:16px;border-radius:5px;background:#ED3237;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:11px;">+</span>
+        <span style="font-size:12.5px;font-weight:700;color:#ED3237;">{{ t.resultsBadge }}</span>
+      </div>
+      <p style="font-size:16.5px;line-height:1.65;color:#56608a;margin:18px 0 0;">{{ t.resultsP }}</p>
+      <button onClick="{{ resultsBook }}" style="margin-top:26px;border:none;cursor:pointer;background:#ED3237;color:#fff;font-weight:700;font-size:16px;padding:15px 28px;border-radius:999px;box-shadow:0 10px 26px rgba(237,50,55,.28);" style-hover="background:#d62a2f;transform:translateY(-1px);">{{ t.resultsCta }}</button>
+      <p style="font-size:13px;color:#9aa3bd;margin:18px 0 0;max-width:420px;">{{ t.resultsDisc }}</p>
+    </div>
+    <div style="flex:1 1 320px;min-width:280px;display:flex;justify-content:center;order:2;">
+      <div style="position:relative;max-width:370px;width:100%;border-radius:24px;overflow:hidden;box-shadow:0 28px 60px rgba(27,42,87,.2);border:1px solid #E7ECF4;background:#1B2A57;">
+        <img src="/keyser-prototype/assets/plasma-gel-result.png" alt="{{ t.resultsAlt }}" style="display:block;width:100%;height:auto;" />
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== TESTIMONIOS ===== -->
+<section id="testimonios" data-screen-label="Testimonios" style="background:#1B2A57;color:#fff;">
+  <div style="max-width:1220px;margin:0 auto;padding:clamp(64px,8vw,110px) 24px;">
+    <div style="max-width:620px;">
+      <div style="font-size:12.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#ff8a8d;">{{ t.testEyebrow }}</div>
+      <h2 style="font-size:clamp(30px,3.8vw,46px);line-height:1.08;letter-spacing:-.025em;font-weight:800;margin:12px 0 0;color:#fff;">{{ t.testTitle }}</h2>
+    </div>
+    <div style="margin-top:40px;display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;">
+      <sc-for list="{{ testimonials }}" as="r" hint-placeholder-count="3">
+        <div style="background:#23335f;border:1px solid #314272;border-radius:20px;padding:28px;display:flex;flex-direction:column;">
+          <div style="color:#ffd14d;font-size:16px;letter-spacing:3px;">★★★★★</div>
+          <p style="font-size:16px;line-height:1.6;color:#dde3f3;margin:16px 0 0;font-family:'Newsreader',serif;font-style:italic;">“{{ r.quote }}”</p>
+          <div style="display:flex;align-items:center;gap:12px;margin-top:auto;padding-top:22px;">
+            <div style="width:40px;height:40px;border-radius:50%;background:#37487a;display:flex;align-items:center;justify-content:center;font-weight:800;color:#aeb8d8;font-size:15px;">{{ r.initial }}</div>
+            <div>
+              <div style="font-weight:700;font-size:14.5px;">{{ r.name }}</div>
+              <div style="font-size:12.5px;color:#9aa6c8;">{{ r.svc }}</div>
+            </div>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+</section>
+
+<!-- ===== VIDEOS ===== -->
+<section id="videos" data-screen-label="Videos" style="background:#F1F5FC;">
+  <div style="max-width:1220px;margin:0 auto;padding:clamp(64px,8vw,110px) 24px;display:flex;flex-wrap:wrap;gap:clamp(36px,5vw,64px);align-items:center;">
+    <div style="flex:1 1 360px;min-width:290px;">
+      <div style="font-size:12.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#ED3237;">{{ t.videosEyebrow }}</div>
+      <h2 style="font-size:clamp(30px,3.8vw,46px);line-height:1.08;letter-spacing:-.025em;font-weight:800;margin:12px 0 0;">{{ t.videosTitle }}</h2>
+      <div style="display:inline-flex;align-items:center;gap:8px;margin-top:18px;background:#FDECEC;border-radius:999px;padding:7px 14px;">
+        <span style="width:16px;height:16px;border-radius:5px;background:#ED3237;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:11px;">+</span>
+        <span style="font-size:12.5px;font-weight:700;color:#ED3237;">{{ t.resultsBadge }}</span>
+      </div>
+      <p style="font-size:16.5px;line-height:1.65;color:#56608a;margin:18px 0 0;">{{ t.videosSub }}</p>
+      <button onClick="{{ resultsBook }}" style="margin-top:26px;border:none;cursor:pointer;background:#ED3237;color:#fff;font-weight:700;font-size:16px;padding:15px 28px;border-radius:999px;box-shadow:0 10px 26px rgba(237,50,55,.28);" style-hover="background:#d62a2f;transform:translateY(-1px);">{{ t.resultsCta }}</button>
+    </div>
+    <div style="flex:1 1 320px;min-width:280px;display:flex;justify-content:center;">
+      <div style="position:relative;max-width:360px;width:100%;border-radius:24px;overflow:hidden;box-shadow:0 28px 60px rgba(27,42,87,.2);border:1px solid #E7ECF4;background:#1B2A57;aspect-ratio:9/16;">
+        <video id="explainerVideo" src="/keyser-prototype/assets/plasma-gel-video.mp4" autoplay muted loop playsinline style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;"></video>
+      </div>
+    </div>
+    <div style="max-width:1220px;margin:52px auto 0;width:100%;">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <span style="font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#1B2A57;">{{ t.clipsLabel }}</span>
+        <span style="flex:1;height:1px;background:#DDE4F0;"></span>
+      </div>
+      <div style="margin-top:22px;display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,240px));gap:22px;">
+        <div style="display:flex;flex-direction:column;">
+          <div style="position:relative;border-radius:18px;overflow:hidden;box-shadow:0 16px 38px rgba(27,42,87,.16);border:1px solid #E7ECF4;background:#1B2A57;aspect-ratio:9/16;">
+            <video id="clip2Video" src="/keyser-prototype/assets/acrocordones-video.mp4" autoplay muted loop playsinline style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;"></video>
+          </div>
+          <div style="margin-top:13px;">
+            <span style="font-size:10.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#ED3237;background:#FDECEC;padding:5px 10px;border-radius:999px;">{{ t.clip2Tag }}</span>
+          </div>
+          <div style="font-size:15px;font-weight:700;margin-top:10px;line-height:1.3;color:#1B2A57;">{{ t.clip2Title }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== RESERVA ===== -->
+<section id="reservar" data-screen-label="Reserva de cita" style="max-width:1220px;margin:0 auto;padding:clamp(64px,8vw,110px) 24px;display:flex;flex-wrap:wrap;gap:clamp(36px,5vw,64px);">
+  <div style="flex:1 1 320px;min-width:280px;">
+    <div style="font-size:12.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#ED3237;">{{ t.bookEyebrow }}</div>
+    <h2 style="font-size:clamp(30px,3.8vw,46px);line-height:1.08;letter-spacing:-.025em;font-weight:800;margin:12px 0 0;">{{ t.bookTitle }}</h2>
+    <p style="font-size:17px;line-height:1.6;color:#56608a;margin:16px 0 0;">{{ t.bookSub }}</p>
+    <div style="display:flex;flex-direction:column;gap:16px;margin-top:30px;">
+      <sc-for list="{{ bookPerks }}" as="b" hint-placeholder-count="3">
+        <div style="display:flex;align-items:flex-start;gap:13px;">
+          <div style="width:38px;height:38px;border-radius:11px;background:#FDECEC;color:#ED3237;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="{{ b.icon }}"></path></svg>
+          </div>
+          <div>
+            <div style="font-weight:700;font-size:15px;">{{ b.t }}</div>
+            <div style="font-size:13.5px;color:#7b84a3;margin-top:2px;line-height:1.45;">{{ b.d }}</div>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+    <a href="{{ waLink }}" target="_blank" style="display:inline-flex;align-items:center;gap:10px;text-decoration:none;margin-top:30px;background:#25D366;color:#fff;font-weight:700;font-size:15px;padding:13px 22px;border-radius:999px;box-shadow:0 8px 22px rgba(37,211,102,.32);" style-hover="background:#1eb959;">
+      <span style="width:22px;height:22px;border-radius:50%;background:rgba(255,255,255,.25);display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="15" height="15" viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M19.05 4.91A9.816 9.816 0 0 0 12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21h.004c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01zM12.04 20.15h-.003a8.2 8.2 0 0 1-4.18-1.15l-.3-.18-3.11.82.83-3.04-.2-.31a8.2 8.2 0 0 1-1.26-4.38c0-4.54 3.7-8.24 8.25-8.24 2.2 0 4.27.86 5.82 2.42a8.18 8.18 0 0 1 2.41 5.83c0 4.54-3.7 8.23-8.24 8.23zm4.52-6.16c-.25-.12-1.47-.72-1.69-.81-.23-.08-.39-.12-.56.12-.16.25-.64.81-.78.97-.14.17-.29.19-.54.06-.25-.12-1.05-.39-1.99-1.23-.74-.66-1.23-1.47-1.38-1.72-.14-.25-.01-.38.11-.5.11-.11.25-.29.37-.43.13-.14.17-.25.25-.41.08-.17.04-.31-.02-.43-.06-.12-.56-1.34-.76-1.84-.2-.48-.41-.42-.56-.43-.14-.01-.31-.01-.48-.01-.17 0-.43.06-.66.31-.22.25-.86.85-.86 2.07 0 1.22.89 2.4 1.01 2.56.12.17 1.75 2.67 4.23 3.74.59.26 1.05.41 1.41.52.59.19 1.13.16 1.56.1.48-.07 1.47-.6 1.67-1.18.21-.58.21-1.07.14-1.18-.06-.11-.22-.17-.47-.29z"></path></svg></span>{{ t.waBook }}
+    </a>
+  </div>
+
+  <div style="flex:1 1 420px;min-width:300px;">
+    <div style="background:#fff;border:1px solid #E7ECF4;border-radius:24px;box-shadow:0 24px 56px rgba(27,42,87,.1);overflow:hidden;">
+      <!-- progress -->
+      <div style="display:flex;border-bottom:1px solid #EEF1F8;">
+        <sc-for list="{{ steps }}" as="st" hint-placeholder-count="4">
+          <div style="{{ st.style }}">
+            <span style="{{ st.dot }}">{{ st.n }}</span>
+            <span style="font-size:12.5px;font-weight:600;">{{ st.label }}</span>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="padding:28px;">
+        <!-- STEP 1 -->
+        <sc-if value="{{ isStep1 }}" hint-placeholder-val="{{ true }}">
+          <div style="animation:kFade .25s ease;">
+            <div style="font-size:18px;font-weight:800;letter-spacing:-.01em;">{{ t.s1Title }}</div>
+            <div style="display:flex;background:#EEF2FA;border-radius:999px;padding:4px;margin-top:18px;">
+              <button onClick="{{ bCatEstetica }}" style="{{ bCatEsteticaStyle }}">{{ t.tabEstetica }}</button>
+              <button onClick="{{ bCatMedico }}" style="{{ bCatMedicoStyle }}">{{ t.tabMedico }}</button>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:9px;margin-top:18px;max-height:240px;overflow-y:auto;">
+              <sc-for list="{{ bookServiceChips }}" as="c" hint-placeholder-count="8">
+                <button onClick="{{ c.select }}" style="{{ c.style }}">{{ c.name }}</button>
+              </sc-for>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- STEP 2 -->
+        <sc-if value="{{ isStep2 }}" hint-placeholder-val="{{ false }}">
+          <div style="animation:kFade .25s ease;">
+            <div style="font-size:18px;font-weight:800;letter-spacing:-.01em;">{{ t.s2Title }}</div>
+            <label style="display:block;font-size:13px;font-weight:600;color:#56608a;margin:18px 0 7px;">{{ t.dateLabel }}</label>
+            <input type="date" value="{{ bDate }}" onChange="{{ onDate }}" style="width:100%;padding:13px 15px;border:1px solid #DCE3F0;border-radius:12px;font-size:15px;color:#1B2A57;" />
+            <div style="font-size:13px;font-weight:600;color:#56608a;margin:20px 0 10px;">{{ t.timeLabel }}</div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(86px,1fr));gap:9px;">
+              <sc-for list="{{ timeSlots }}" as="ts" hint-placeholder-count="8">
+                <button onClick="{{ ts.select }}" style="{{ ts.style }}">{{ ts.t }}</button>
+              </sc-for>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- STEP 3 -->
+        <sc-if value="{{ isStep3 }}" hint-placeholder-val="{{ false }}">
+          <div style="animation:kFade .25s ease;">
+            <div style="font-size:18px;font-weight:800;letter-spacing:-.01em;">{{ t.s3Title }}</div>
+            <label style="display:block;font-size:13px;font-weight:600;color:#56608a;margin:18px 0 7px;">{{ t.nameLabel }}</label>
+            <input value="{{ bName }}" onChange="{{ onName }}" placeholder="{{ t.namePh }}" style="{{ nameInputStyle }}" />
+            <div style="font-size:12px;color:#ED3237;margin-top:5px;min-height:14px;">{{ errName }}</div>
+            <label style="display:block;font-size:13px;font-weight:600;color:#56608a;margin:10px 0 7px;">{{ t.phoneLabel }}</label>
+            <input value="{{ bPhone }}" onChange="{{ onPhone }}" placeholder="+505 0000-0000" style="{{ phoneInputStyle }}" />
+            <div style="font-size:12px;color:#ED3237;margin-top:5px;min-height:14px;">{{ errPhone }}</div>
+            <label style="display:block;font-size:13px;font-weight:600;color:#56608a;margin:10px 0 7px;">{{ t.emailLabel }}</label>
+            <input value="{{ bEmail }}" onChange="{{ onEmail }}" placeholder="tucorreo@ejemplo.com" style="{{ emailInputStyle }}" />
+            <div style="font-size:12px;color:#ED3237;margin-top:5px;min-height:14px;">{{ errEmail }}</div>
+            <label style="display:block;font-size:13px;font-weight:600;color:#56608a;margin:10px 0 7px;">{{ t.notesLabel }}</label>
+            <textarea value="{{ bNotes }}" onChange="{{ onNotes }}" rows="2" placeholder="{{ t.notesPh }}" style="width:100%;padding:13px 15px;border:1px solid #DCE3F0;border-radius:12px;font-size:15px;color:#1B2A57;resize:vertical;"></textarea>
+          </div>
+        </sc-if>
+
+        <!-- STEP 4 -->
+        <sc-if value="{{ isDone }}" hint-placeholder-val="{{ false }}">
+          <div style="text-align:center;padding:14px 0 6px;animation:kFade .3s ease;">
+            <div style="width:64px;height:64px;border-radius:50%;background:#E7F6EE;color:#2bb673;display:flex;align-items:center;justify-content:center;margin:0 auto;font-size:30px;font-weight:800;">✓</div>
+            <div style="font-size:21px;font-weight:800;margin-top:18px;">{{ t.doneTitle }}</div>
+            <p style="font-size:14.5px;color:#6b7493;line-height:1.55;margin:10px auto 0;max-width:320px;">{{ t.doneSub }}</p>
+            <div style="text-align:left;background:#F5F8FD;border:1px solid #E7ECF4;border-radius:14px;padding:18px;margin-top:22px;">
+              <div style="display:flex;justify-content:space-between;gap:12px;padding:6px 0;font-size:14px;"><span style="color:#7b84a3;">{{ t.sumService }}</span><span style="font-weight:700;text-align:right;">{{ bService }}</span></div>
+              <div style="display:flex;justify-content:space-between;gap:12px;padding:6px 0;font-size:14px;"><span style="color:#7b84a3;">{{ t.sumWhen }}</span><span style="font-weight:700;text-align:right;">{{ bWhen }}</span></div>
+              <div style="display:flex;justify-content:space-between;gap:12px;padding:6px 0;font-size:14px;"><span style="color:#7b84a3;">{{ t.sumName }}</span><span style="font-weight:700;text-align:right;">{{ bName }}</span></div>
+            </div>
+            <button onClick="{{ bookReset }}" style="margin-top:20px;border:1px solid #DCE3F0;background:#fff;cursor:pointer;color:#1B2A57;font-weight:700;font-size:14.5px;padding:12px 22px;border-radius:999px;">{{ t.newBooking }}</button>
+          </div>
+        </sc-if>
+
+        <!-- nav buttons -->
+        <sc-if value="{{ showBookNav }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex;gap:12px;margin-top:26px;">
+            <sc-if value="{{ canBack }}" hint-placeholder-val="{{ false }}">
+              <button onClick="{{ bookPrev }}" style="flex:0 0 auto;border:1px solid #DCE3F0;background:#fff;cursor:pointer;color:#1B2A57;font-weight:700;font-size:15px;padding:13px 22px;border-radius:12px;">{{ t.back }}</button>
+            </sc-if>
+            <button onClick="{{ bookNext }}" style="flex:1;border:none;cursor:pointer;background:#ED3237;color:#fff;font-weight:700;font-size:15px;padding:13px;border-radius:12px;box-shadow:0 8px 20px rgba(237,50,55,.26);" style-hover="background:#d62a2f;">{{ nextLabel }}</button>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== CONTACTO ===== -->
+<section id="contacto" data-screen-label="Contacto" style="background:#F1F5FC;">
+  <div style="max-width:1220px;margin:0 auto;padding:clamp(64px,8vw,110px) 24px;display:flex;flex-wrap:wrap;gap:clamp(36px,5vw,56px);">
+    <div style="flex:1 1 360px;min-width:290px;">
+      <div style="font-size:12.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#ED3237;">{{ t.contactEyebrow }}</div>
+      <h2 style="font-size:clamp(30px,3.8vw,46px);line-height:1.08;letter-spacing:-.025em;font-weight:800;margin:12px 0 0;">{{ t.contactTitle }}</h2>
+      <div style="display:flex;flex-direction:column;gap:14px;margin-top:28px;">
+        <sc-for list="{{ contactRows }}" as="c" hint-placeholder-count="4">
+          <div style="display:flex;align-items:flex-start;gap:14px;background:#fff;border:1px solid #E7ECF4;border-radius:14px;padding:16px 18px;">
+            <div style="width:40px;height:40px;border-radius:11px;background:#EEF2FA;color:#1B2A57;display:flex;align-items:center;justify-content:center;font-weight:800;flex-shrink:0;">{{ c.icon }}</div>
+            <div>
+              <div style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#9aa3bd;">{{ c.label }}</div>
+              <div style="font-size:15.5px;font-weight:600;color:#1B2A57;margin-top:3px;">{{ c.value }}</div>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+    <div style="flex:1 1 380px;min-width:300px;">
+      <div style="position:relative;border-radius:22px;overflow:hidden;height:100%;min-height:340px;box-shadow:0 16px 40px rgba(27,42,87,.1);background:#e3eaf6;">
+        <iframe title="Mapa Clínica Keyser" src="https://www.openstreetmap.org/export/embed.html?bbox=-87.13328%2C12.61896%2C-87.11328%2C12.63396&layer=mapnik&marker=12.62646%2C-87.12328" style="width:100%;height:100%;min-height:340px;border:0;display:block;filter:saturate(1.05);" loading="lazy"></iframe>
+        <a href="{{ mapsLink }}" target="_blank" style="position:absolute;left:16px;bottom:16px;display:inline-flex;align-items:center;gap:8px;text-decoration:none;background:#fff;border:1px solid #E7ECF4;border-radius:12px;padding:11px 16px;box-shadow:0 8px 22px rgba(27,42,87,.16);" style-hover="transform:translateY(-1px);">
+          <span style="width:26px;height:26px;border-radius:8px;background:#ED3237;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;">+</span>
+          <span style="font-size:13.5px;font-weight:700;color:#1B2A57;">{{ t.openMaps }}</span>
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== FAQ ===== -->
+<section id="faq" data-screen-label="FAQ" style="max-width:820px;margin:0 auto;padding:clamp(64px,8vw,110px) 24px;">
+  <div style="text-align:center;">
+    <div style="font-size:12.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#ED3237;">{{ t.faqEyebrow }}</div>
+    <h2 style="font-size:clamp(30px,3.8vw,46px);line-height:1.08;letter-spacing:-.025em;font-weight:800;margin:12px 0 0;">{{ t.faqTitle }}</h2>
+  </div>
+  <div style="margin-top:36px;display:flex;flex-direction:column;gap:12px;">
+    <sc-for list="{{ faqs }}" as="f" hint-placeholder-count="5">
+      <div style="background:#fff;border:1px solid #E7ECF4;border-radius:16px;overflow:hidden;">
+        <button onClick="{{ f.toggle }}" style="width:100%;display:flex;align-items:center;justify-content:space-between;gap:16px;text-align:left;background:transparent;border:none;cursor:pointer;padding:20px 22px;font-size:16.5px;font-weight:700;color:#1B2A57;">
+          {{ f.q }}<span style="{{ f.iconStyle }}">+</span>
+        </button>
+        <sc-if value="{{ f.open }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:0 22px 22px;font-size:15px;line-height:1.6;color:#6b7493;animation:kFade .2s ease;">{{ f.a }}</div>
+        </sc-if>
+      </div>
+    </sc-for>
+  </div>
+</section>
+
+<!-- ===== CTA STRIP ===== -->
+<section style="background:#ED3237;">
+  <div style="max-width:1220px;margin:0 auto;padding:clamp(48px,6vw,72px) 24px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:24px;">
+    <div>
+      <h2 style="font-size:clamp(26px,3.2vw,38px);line-height:1.1;letter-spacing:-.02em;font-weight:800;color:#fff;margin:0;">{{ t.ctaTitle }}</h2>
+      <p style="font-size:16.5px;color:#ffd9da;margin:10px 0 0;">{{ t.ctaSub }}</p>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:13px;">
+      <button onClick="{{ goBook }}" style="border:none;cursor:pointer;background:#fff;color:#ED3237;font-weight:800;font-size:16px;padding:15px 28px;border-radius:999px;" style-hover="transform:translateY(-1px);">{{ t.book }}</button>
+      <a href="{{ waLink }}" target="_blank" style="text-decoration:none;border:1.5px solid rgba(255,255,255,.6);color:#fff;font-weight:700;font-size:16px;padding:15px 26px;border-radius:999px;" style-hover="background:rgba(255,255,255,.12);">{{ t.heroWa }}</a>
+    </div>
+  </div>
+</section>
+
+<!-- ===== FOOTER ===== -->
+<footer style="background:#141F42;color:#aeb8d8;">
+  <div style="max-width:1220px;margin:0 auto;padding:clamp(48px,6vw,72px) 24px 36px;display:flex;flex-wrap:wrap;gap:40px;justify-content:space-between;">
+    <div style="max-width:300px;">
+      <div style="display:flex;align-items:center;gap:11px;">
+        <img src="/keyser-prototype/assets/logo-keyser.png" alt="Clínica Keyser" style="width:40px;height:40px;" />
+        <span style="font-weight:800;font-size:18px;color:#fff;">Clínica Keyser</span>
+      </div>
+      <p style="font-size:14px;line-height:1.6;margin:16px 0 0;color:#8b96bd;">{{ t.footerAbout }}</p>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:48px;">
+      <div>
+        <div style="font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#6271a0;">{{ t.footerNav }}</div>
+        <div style="display:flex;flex-direction:column;gap:11px;margin-top:16px;">
+          <sc-for list="{{ navLinks }}" as="n" hint-placeholder-count="5">
+            <a href="#" onClick="{{ n.go }}" style="text-decoration:none;color:#aeb8d8;font-size:14.5px;" style-hover="color:#fff;">{{ n.label }}</a>
+          </sc-for>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#6271a0;">{{ t.footerContact }}</div>
+        <div style="display:flex;flex-direction:column;gap:11px;margin-top:16px;font-size:14.5px;">
+          <a href="{{ waLink }}" target="_blank" style="text-decoration:none;color:#aeb8d8;" style-hover="color:#fff;">WhatsApp +505 7650-7993</a>
+          <span>{{ t.hoursShort }}</span>
+          <span>{{ t.locShort }}</span>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#6271a0;">{{ t.followLabel }}</div>
+        <div style="margin-top:16px;">
+          <div style="font-size:12.5px;font-weight:700;color:#fff;">Clínica Keyser</div>
+          <div style="display:flex;gap:9px;margin-top:9px;">
+            <a href="https://www.facebook.com/share/1AvzmfbxHH/" target="_blank" aria-label="Facebook Clínica Keyser" style="width:38px;height:38px;border-radius:10px;background:#243152;display:flex;align-items:center;justify-content:center;color:#aeb8d8;" style-hover="background:#1877F2;color:#fff;"><svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M13.5 22v-8h2.7l.4-3.1h-3.1V8.9c0-.9.25-1.5 1.55-1.5h1.65V4.6c-.8-.1-1.6-.15-2.4-.15-2.4 0-4.05 1.45-4.05 4.15V11H7.6v3.1h2.65V22z"></path></svg></a>
+            <a href="https://www.instagram.com/clinicakeyser" target="_blank" aria-label="Instagram Clínica Keyser" style="width:38px;height:38px;border-radius:10px;background:#243152;display:flex;align-items:center;justify-content:center;color:#aeb8d8;" style-hover="background:#E1306C;color:#fff;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3.5" y="3.5" width="17" height="17" rx="5"></rect><circle cx="12" cy="12" r="4"></circle><circle cx="17.2" cy="6.8" r="1.1" fill="currentColor" stroke="none"></circle></svg></a>
+          </div>
+          <div style="font-size:12.5px;font-weight:700;color:#fff;margin-top:16px;">Centro Estético Keyser</div>
+          <div style="display:flex;gap:9px;margin-top:9px;">
+            <a href="https://www.tiktok.com/@centro_estetico_keyser" target="_blank" aria-label="TikTok Centro Estético Keyser" style="width:38px;height:38px;border-radius:10px;background:#243152;display:flex;align-items:center;justify-content:center;color:#aeb8d8;" style-hover="background:#000;color:#fff;"><svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M16.5 3c.35 2.1 1.6 3.65 3.7 3.95v2.85c-1.45.05-2.75-.4-3.85-1.2v5.95a5.45 5.45 0 1 1-5.45-5.45c.3 0 .6.03.9.08v2.95a2.55 2.55 0 1 0 1.75 2.42V3z"></path></svg></a>
+            <a href="https://www.facebook.com/share/198hTtAxnz/" target="_blank" aria-label="Facebook Centro Estético Keyser" style="width:38px;height:38px;border-radius:10px;background:#243152;display:flex;align-items:center;justify-content:center;color:#aeb8d8;" style-hover="background:#1877F2;color:#fff;"><svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M13.5 22v-8h2.7l.4-3.1h-3.1V8.9c0-.9.25-1.5 1.55-1.5h1.65V4.6c-.8-.1-1.6-.15-2.4-.15-2.4 0-4.05 1.45-4.05 4.15V11H7.6v3.1h2.65V22z"></path></svg></a>
+            <a href="https://www.instagram.com/centro_estetico_keyser" target="_blank" aria-label="Instagram Centro Estético Keyser" style="width:38px;height:38px;border-radius:10px;background:#243152;display:flex;align-items:center;justify-content:center;color:#aeb8d8;" style-hover="background:#E1306C;color:#fff;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3.5" y="3.5" width="17" height="17" rx="5"></rect><circle cx="12" cy="12" r="4"></circle><circle cx="17.2" cy="6.8" r="1.1" fill="currentColor" stroke="none"></circle></svg></a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div style="border-top:1px solid #243152;">
+    <div style="max-width:1220px;margin:0 auto;padding:20px 24px;font-size:13px;color:#6271a0;">© 2026 Clínica Keyser · {{ t.rights }}</div>
+  </div>
+</footer>
+
+</main>
+
+<!-- ===== ACCESO PRIVADO (modal) ===== -->
+<sc-if value="{{ privOpen }}" hint-placeholder-val="{{ false }}">
+  <div onClick="{{ closePriv }}" style="position:fixed;inset:0;z-index:100;background:rgba(20,31,66,.55);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:20px;animation:kFade .2s ease;">
+    <div onClick="{{ stopProp }}" style="background:#fff;border-radius:22px;max-width:400px;width:100%;padding:36px 30px 30px;box-shadow:0 30px 70px rgba(0,0,0,.32);position:relative;">
+      <button onClick="{{ closePriv }}" aria-label="Cerrar" style="position:absolute;top:16px;right:16px;border:none;background:#F0F3F9;cursor:pointer;width:34px;height:34px;border-radius:50%;color:#7b84a3;font-size:16px;line-height:1;">✕</button>
+      <div style="display:flex;flex-direction:column;align-items:center;text-align:center;">
+        <div style="width:58px;height:58px;border-radius:16px;background:#1B2A57;display:flex;align-items:center;justify-content:center;color:#fff;">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="4" y="10.5" width="16" height="10" rx="2.5" fill="currentColor"></rect><path d="M7.5 10.5V7.5a4.5 4.5 0 0 1 9 0v3" stroke="currentColor" stroke-width="2"></path></svg>
+        </div>
+        <div style="font-size:21px;font-weight:800;margin-top:18px;letter-spacing:-.01em;">{{ t.privTitle }}</div>
+        <div style="font-size:14px;color:#7b84a3;margin-top:6px;line-height:1.45;">{{ t.privSubtitle }}</div>
+      </div>
+
+      <sc-if value="{{ privFormOpen }}" hint-placeholder-val="{{ true }}">
+        <div style="margin-top:24px;">
+          <label style="display:block;font-size:13px;font-weight:600;color:#56608a;margin-bottom:7px;">{{ t.privUserLabel }}</label>
+          <input value="{{ privUser }}" onChange="{{ onPrivUser }}" placeholder="usuario" style="width:100%;padding:13px 15px;border:1px solid #DCE3F0;border-radius:12px;font-size:15px;color:#1B2A57;outline:none;" />
+          <label style="display:block;font-size:13px;font-weight:600;color:#56608a;margin:14px 0 7px;">{{ t.privPassLabel }}</label>
+          <input type="password" value="{{ privPass }}" onChange="{{ onPrivPass }}" placeholder="••••••••" style="width:100%;padding:13px 15px;border:1px solid #DCE3F0;border-radius:12px;font-size:15px;color:#1B2A57;outline:none;" />
+          <div style="font-size:12.5px;color:#ED3237;margin-top:8px;min-height:16px;">{{ privError }}</div>
+          <button onClick="{{ privSubmit }}" style="margin-top:8px;width:100%;border:none;cursor:pointer;background:#1B2A57;color:#fff;font-weight:700;font-size:15px;padding:14px;border-radius:12px;box-shadow:0 8px 22px rgba(27,42,87,.24);" style-hover="background:#16234a;">{{ t.privBtn }}</button>
+          <div style="font-size:12px;color:#9aa3bd;margin-top:14px;text-align:center;line-height:1.45;">{{ t.privNote }}</div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ privDone }}" hint-placeholder-val="{{ false }}">
+        <div style="margin-top:24px;text-align:center;animation:kFade .25s ease;">
+          <div style="width:56px;height:56px;border-radius:50%;background:#E7F6EE;color:#2bb673;display:flex;align-items:center;justify-content:center;margin:0 auto;font-size:26px;font-weight:800;">✓</div>
+          <div style="font-size:18px;font-weight:800;margin-top:14px;">{{ t.privSuccessTitle }}</div>
+          <div style="font-size:14px;color:#6b7493;margin-top:6px;">{{ t.privSuccessMsg }}</div>
+          <button onClick="{{ openSystem }}" style="margin-top:18px;width:100%;border:none;cursor:pointer;background:#ED3237;color:#fff;font-weight:700;font-size:15px;padding:14px;border-radius:12px;" style-hover="background:#d62a2f;">{{ t.privOpenSys }}</button>
+          <div style="font-size:12px;color:#9aa3bd;margin-top:12px;line-height:1.45;">{{ t.privPending }}</div>
+        </div>
+      </sc-if>
+    </div>
+  </div>
+</sc-if>
+
+<!-- Floating WhatsApp -->
+<a href="{{ waLink }}" target="_blank" aria-label="WhatsApp" style="position:fixed;right:20px;bottom:20px;z-index:80;width:58px;height:58px;border-radius:50%;background:#25D366;display:flex;align-items:center;justify-content:center;box-shadow:0 10px 28px rgba(37,211,102,.45);text-decoration:none;" style-hover="transform:scale(1.06);">
+  <svg width="30" height="30" viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M19.05 4.91A9.816 9.816 0 0 0 12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21h.004c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01zM12.04 20.15h-.003a8.2 8.2 0 0 1-4.18-1.15l-.3-.18-3.11.82.83-3.04-.2-.31a8.2 8.2 0 0 1-1.26-4.38c0-4.54 3.7-8.24 8.25-8.24 2.2 0 4.27.86 5.82 2.42a8.18 8.18 0 0 1 2.41 5.83c0 4.54-3.7 8.23-8.24 8.23zm4.52-6.16c-.25-.12-1.47-.72-1.69-.81-.23-.08-.39-.12-.56.12-.16.25-.64.81-.78.97-.14.17-.29.19-.54.06-.25-.12-1.05-.39-1.99-1.23-.74-.66-1.23-1.47-1.38-1.72-.14-.25-.01-.38.11-.5.11-.11.25-.29.37-.43.13-.14.17-.25.25-.41.08-.17.04-.31-.02-.43-.06-.12-.56-1.34-.76-1.84-.2-.48-.41-.42-.56-.43-.14-.01-.31-.01-.48-.01-.17 0-.43.06-.66.31-.22.25-.86.85-.86 2.07 0 1.22.89 2.4 1.01 2.56.12.17 1.75 2.67 4.23 3.74.59.26 1.05.41 1.41.52.59.19 1.13.16 1.56.1.48-.07 1.47-.6 1.67-1.18.21-.58.21-1.07.14-1.18-.06-.11-.22-.17-.47-.29z"></path></svg>
+</a>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = {
+    lang: 'es',
+    navOpen: false,
+    width: 1280,
+    faq: 0,
+    tab: 'estetica',
+    heroPlaying: false,
+    explainerPlaying: false,
+    clip2Playing: false,
+    privOpen: false, privUser: '', privPass: '', privTried: false, privDone: false,
+    menuOpen: false,
+    b: { step: 1, cat: 'estetica', service: '', date: '', time: '', name: '', phone: '', email: '', notes: '', done: false, triedNext: false }
+  };
+
+  componentDidMount() {
+    this._r = () => this.setState({ width: window.innerWidth });
+    window.addEventListener('resize', this._r);
+    this.setState({ width: window.innerWidth, b: { ...this.state.b } });
+    // Keep ambient videos always playing: force muted+loop (React drops the muted attr) and retry autoplay.
+    this._activated = {};
+    this._ensure = () => {
+      document.querySelectorAll('video').forEach((v) => {
+        if (this._activated[v.id]) return;
+        v.loop = true; v.playsInline = true;
+        if (!v.muted) v.muted = true;
+        if (v.paused) { const p = v.play(); if (p && p.catch) p.catch(() => {}); }
+      });
+    };
+    this._ensureIv = setInterval(this._ensure, 1200);
+    document.addEventListener('visibilitychange', this._ensure);
+    setTimeout(this._ensure, 300);
+  }
+  componentWillUnmount() {
+    window.removeEventListener('resize', this._r);
+    clearInterval(this._ensureIv);
+    document.removeEventListener('visibilitychange', this._ensure);
+  }
+
+  setB(patch) { this.setState(s => ({ b: { ...s.b, ...patch } })); }
+
+  scrollTo(id) {
+    this.setState({ navOpen: false, menuOpen: false });
+    requestAnimationFrame(() => {
+      const el = document.getElementById(id);
+      if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 74, behavior: 'smooth' });
+    });
+  }
+
+  strings() {
+    const es = {
+      tagline: 'Clínica Multiespecialidad',
+      book: 'Reservar cita', bookShort: 'Reservar', book2: 'Agendar', menuLabel: 'Secciones',
+      privAccess: 'Acceso privado', privTitle: 'Acceso privado', privSubtitle: 'Sistema de facturación y gestión de la clínica', privUserLabel: 'Usuario', privPassLabel: 'Contraseña', privBtn: 'Ingresar', privNote: 'Acceso exclusivo para personal autorizado de Clínica Keyser.', privErrorMsg: 'Ingresa tu usuario y contraseña.', privSuccessTitle: 'Acceso verificado', privSuccessMsg: 'Conectando con el sistema de gestión…', privOpenSys: 'Abrir sistema', privPending: 'El enlace a tu sistema se configurará aquí.',
+      nav: { servicios: 'Servicios', nosotros: 'Nosotros', precios: 'Precios', resultados: 'Resultados', videos: 'Videos', testimonios: 'Testimonios', contacto: 'Contacto' },
+      heroBadge: 'Atención el mismo día disponible',
+      heroL1: 'Tu salud y tu', heroL2: 'bienestar', heroL3: 'en un solo lugar.',
+      heroSub: 'Especialidades médico-quirúrgicas y tratamientos estéticos de vanguardia, con laboratorio clínico propio y un equipo certificado que cuida cada detalle.',
+      heroCta: 'Reservar mi cita', heroWa: 'Escríbenos por WhatsApp',
+      heroPoints: ['Equipo médico certificado', 'Laboratorio clínico propio', 'Tecnología de vanguardia'],
+      phClinic: 'foto de la clínica', phTeam: 'foto del equipo médico', phPhoto: 'foto', phMap: 'mapa de ubicación',
+      openNow: 'Emergencias 24/7 · A domicilio', hoursShort: 'Lun–Vie 8am–5pm · Sáb 8am–1pm', locShort: 'Restaurante Antonche 270mts al sur',
+      hoursLabel: 'Horario de atención', hoursWeekDay: 'Lun–Vie', hoursWeekTime: '8am–5pm', hoursSatDay: 'Sábado', hoursSatTime: '8am–1pm', emergencyTag: 'Emergencias y a domicilio',
+      specCount: 'servicios y especialidades bajo un mismo techo',
+      trust: [
+        { k: '+20', v: 'Servicios y especialidades' },
+        { k: 'Mismo día', v: 'Citas y valoraciones' },
+        { k: 'Lab propio', v: 'Resultados sin esperas' },
+        { k: 'Equipo', v: 'Profesionales certificados' }
+      ],
+      svcEyebrow: 'Lo que hacemos', svcTitle: 'Servicios y especialidades', svcSub: 'Desde tratamientos estéticos avanzados hasta consultas médico-quirúrgicas. Elige una categoría para explorar.',
+      tabEstetica: 'Estética', tabMedico: 'Médico-quirúrgico',
+      exclusive: 'Exclusivo', bookShort2: 'Reservar',
+      estetica: [
+        { name: 'Eliminación de tatuajes con láser', desc: 'Borrado progresivo y seguro de tatuajes con tecnología láser.' },
+        { name: 'Verrugas y manchas', desc: 'Eliminación de verrugas, lunares y manchas de la piel.' },
+        { name: 'Endolift y lipólisis', desc: 'Reducción de grasa localizada y reafirmación sin cirugía.' },
+        { name: 'Tensado vaginal', desc: 'Rejuvenecimiento íntimo no quirúrgico con tecnología láser.' },
+        { name: 'Limpieza facial', desc: 'Limpieza profunda que renueva e ilumina tu piel.' },
+        { name: 'Peeling químico', desc: 'Renovación celular para una piel más uniforme y luminosa.' },
+        { name: 'Hollywood Peel', desc: 'Láser de carbón activado para un rostro radiante al instante.' },
+        { name: 'Rellenos', desc: 'Ácido hialurónico para volumen, contorno e hidratación.' },
+        { name: 'Plasma Gel', desc: 'Nuestro servicio exclusivo: relleno regenerativo con tu propio plasma.', exclusive: true }
+      ],
+      medico: [
+        { name: 'Pediatría', desc: 'Cuidado integral de bebés, niños y adolescentes.' },
+        { name: 'Cirugía pediátrica', desc: 'Procedimientos quirúrgicos especializados para niños.' },
+        { name: 'Medicina interna', desc: 'Diagnóstico y manejo de enfermedades del adulto.' },
+        { name: 'Medicina general', desc: 'Atención primaria y control de salud para toda la familia.' },
+        { name: 'Ginecología', desc: 'Salud femenina, controles y atención integral.' },
+        { name: 'Cirugía general', desc: 'Evaluación y procedimientos quirúrgicos con seguridad.' },
+        { name: 'Neurología pediátrica', desc: 'Atención especializada del sistema nervioso infantil.' },
+        { name: 'Odontología', desc: 'Salud dental, estética y prevención bucal.' },
+        { name: 'Psicología', desc: 'Acompañamiento y bienestar emocional profesional.' },
+        { name: 'Ultrasonografía', desc: 'Estudios de imagen precisos y en el momento.' },
+        { name: 'EKG', desc: 'Electrocardiograma para evaluar tu salud cardíaca.' },
+        { name: 'Holter de presión arterial', desc: 'Monitoreo continuo de la presión durante 24 horas.' },
+        { name: 'Laboratorio clínico', desc: 'Exámenes completos con resultados rápidos y confiables.' }
+      ],
+      aboutEyebrow: 'Sobre nosotros', aboutTitle: 'Medicina que combina ciencia y calidez',
+      aboutP1: 'En Clínica Keyser reunimos especialidades médico-quirúrgicas y tratamientos estéticos en un mismo espacio, para que tú y tu familia reciban atención completa sin tener que ir de un lado a otro.',
+      aboutP2: 'Contamos con laboratorio clínico propio, equipos de diagnóstico modernos y un equipo de profesionales comprometidos con tu salud y tu confianza.',
+      values: [
+        { t: 'Atención cercana', d: 'Te escuchamos y acompañamos en cada paso.' },
+        { t: 'Tecnología', d: 'Equipos modernos para diagnósticos precisos.' },
+        { t: 'Todo en un lugar', d: 'Consultas, exámenes y tratamientos.' },
+        { t: 'Confianza', d: 'Profesionales certificados y con experiencia.' }
+      ],
+      teamTitle: 'Nuestro equipo',
+      team: [
+        { name: 'Dr. Sergio Herrera', role: 'Médico Estético y General · Propietario', note: 'Medicina estética, medicina general y ultrasonografía clínica y avanzada. Cód. MINSA 95520.', photo: '/keyser-prototype/assets/dr-sergio.png' },
+        { name: 'Dr. Pablo Navarrete', role: 'Neurólogo Pediatra', note: 'Cefaleas, epilepsia, trastornos del sueño, TDAH, síndromes del neurodesarrollo y autismo.', photo: '/keyser-prototype/assets/dr-pablo.png' },
+        { name: 'Dr. Howard Amador', role: 'Cirujano Pediatra', note: 'Cirugía pediátrica laparoscópica mínimamente invasiva (apendicitis y más), con recuperación rápida.', photo: '/keyser-prototype/assets/dr-howard.png' },
+        { name: 'Dr. Yader Rivera', role: 'Internista · Cardiólogo Clínico', note: 'Subespecialista en cardiología clínica: enfermedades coronarias, hipertensión, insuficiencia, arritmias y valvulopatías.', photo: '/keyser-prototype/assets/dr-yader.png' },
+        { name: 'Dr. Esau García', role: 'Internista · Terapia Intensiva', note: 'Subespecialista en terapia intensiva: manejo del paciente crítico, enfermedades agudas y crónicas y ecografía crítica.', photo: '/keyser-prototype/assets/dr-esau.png' },
+        { name: 'Lic. Julissa Quezada', role: 'Psicóloga Clínica', note: 'Evaluación y diagnóstico, terapia individual en adolescentes y adultos, ansiedad, depresión, manejo del estrés y duelo.', photo: '/keyser-prototype/assets/dr-julissa.png' },
+        { name: 'Dra. Yamilet Duarte', role: 'Cirujano Dentista', note: 'Odontología general: profilaxis, caries, extracciones, endodoncia y colocación de coronas y puentes.', photo: '/keyser-prototype/assets/dr-yamilet.png' },
+        { name: 'Dr. Joseph Yesca', role: 'Ortopedista y Traumatólogo', note: 'Fracturas simples y complejas, trauma de mínima invasión, patologías de columna y rescate del pie diabético.', photo: '/keyser-prototype/assets/dr-joseph.png' },
+      ],
+      gynEyebrow: 'Ginecología', gynTitle: 'Salud y bienestar de la mujer', gynSub: 'Atención ginecológica integral y preventiva, con procedimientos en consultorio y planificación familiar en un solo lugar.', gynCta: 'Agendar consulta ginecológica',
+      gynProcedures: [
+        { t: 'Papanicolaou (PAP)', d: 'Detección temprana del cáncer cervicouterino.' },
+        { t: 'Colposcopía', d: 'Evaluación detallada del cuello uterino ante resultados alterados.' },
+        { t: 'Vacuna contra el VPH', d: 'Prevención del virus del papiloma humano.' },
+        { t: 'Colocación de DIU', d: 'Anticoncepción de larga duración, segura y reversible.' },
+        { t: 'Implante subdérmico', d: 'Método anticonceptivo discreto y efectivo por varios años.' },
+        { t: 'Control ginecológico', d: 'Chequeo integral y consejería en salud femenina.' }
+      ],
+      priceEyebrow: 'Precios', priceTitle: 'Planes claros, sin sorpresas', priceSub: 'Precios de referencia para que tengas una idea antes de tu visita. La valoración inicial define el plan ideal para ti.',
+      from: 'Desde', popular: 'Más solicitado',
+      pricing: [
+        { kicker: 'Consulta general', price: 'C$ 500', unit: 'por consulta', items: ['Atención de medicina general', 'Receta y plan de tratamiento', 'Referencia a especialista si aplica'] },
+        { kicker: 'Consulta de especialidad', price: 'C$ 800', unit: 'por especialista', items: ['Pediatría, ginecología, interna y más', 'Evaluación detallada', 'Seguimiento personalizado'], featured: true },
+        { kicker: 'Valoración estética', price: '$20', unit: 'valoración inicial', items: ['Diagnóstico de piel y necesidades', 'Plan de tratamiento a medida', 'Abonable a tu procedimiento'] }
+      ],
+      priceNote: '*Precios de referencia en córdobas, sujetos a valoración. Confirma el costo final al agendar.',
+      resultsEyebrow: 'Resultados reales', resultsTitle: 'Antes y después de Plasma Gel', resultsP: 'Plasma Gel es nuestro tratamiento exclusivo: un relleno regenerativo elaborado con tu propio plasma para dar volumen, definir el contorno y mejorar la calidad de la piel de forma natural. Estos son resultados reales de nuestras pacientes.', resultsBadge: 'Exclusivo de Clínica Keyser', resultsCta: 'Quiero estos resultados', resultsDisc: '*Resultado de una paciente real. Los resultados pueden variar según cada persona.', resultsAlt: 'Antes y después de un tratamiento Plasma Gel',
+      testEyebrow: 'Testimonios', testTitle: 'Lo que dicen nuestros pacientes',
+      testimonials: [
+        { quote: 'Me atendieron el mismo día y el laboratorio me dio resultados rapidísimo. Excelente trato.', name: 'María G.', svc: 'Laboratorio clínico', initial: 'M' },
+        { quote: 'El Hollywood Peel dejó mi piel increíble. El equipo es súper profesional y cálido.', name: 'Andrea L.', svc: 'Tratamiento estético', initial: 'A' },
+        { quote: 'Llevo a mis hijos a pediatría aquí. Confianza total y atención de primera.', name: 'Carlos R.', svc: 'Pediatría', initial: 'C' }
+      ],
+      videosEyebrow: 'Video', videosTitle: 'Rellenos con Plasma Gel, explicados', videosSub: 'Descubre en qué consiste nuestro tratamiento exclusivo de Plasma Gel: un relleno regenerativo hecho con tu propio plasma para dar volumen y mejorar tu piel de forma natural.',
+      clipsLabel: 'Más procedimientos', clip2Tag: 'Procedimiento real', clip2Title: 'Eliminación de acrocordones (verrugas)',
+      bookEyebrow: 'Reserva', bookTitle: 'Agenda tu cita en minutos', bookSub: 'Elige tu servicio, día y hora. Te confirmamos por WhatsApp lo antes posible.',
+      bookPerks: [
+        { t: 'Confirmación rápida', d: 'Te escribimos para confirmar tu cita.' },
+        { t: 'Recordatorios', d: 'Te recordamos tu cita por WhatsApp.' },
+        { t: 'Reprograma fácil', d: 'Cambia tu cita cuando lo necesites.' }
+      ],
+      waBook: 'Prefiero reservar por WhatsApp',
+      steps: ['Servicio', 'Fecha y hora', 'Tus datos', 'Listo'],
+      s1Title: '¿Qué servicio necesitas?',
+      s2Title: 'Elige fecha y hora', dateLabel: 'Fecha', timeLabel: 'Hora disponible',
+      s3Title: 'Tus datos de contacto', nameLabel: 'Nombre completo', namePh: 'Ej. María González', phoneLabel: 'Teléfono / WhatsApp', emailLabel: 'Correo electrónico', notesLabel: 'Notas (opcional)', notesPh: 'Cuéntanos brevemente el motivo de tu consulta…',
+      doneTitle: '¡Solicitud enviada!', doneSub: 'Hemos recibido tu solicitud de cita. Te contactaremos pronto por WhatsApp para confirmar.',
+      sumService: 'Servicio', sumWhen: 'Fecha y hora', sumName: 'Nombre', newBooking: 'Hacer otra reserva',
+      back: 'Atrás', next: 'Continuar', confirm: 'Confirmar cita',
+      errNameMsg: 'Ingresa tu nombre', errPhoneMsg: 'Ingresa un teléfono válido', errEmailMsg: 'Ingresa un correo válido',
+      errService: 'Selecciona un servicio para continuar', errDate: 'Elige una fecha y una hora',
+      openMaps: 'Cómo llegar',
+      contactEyebrow: 'Contacto', contactTitle: 'Visítanos o escríbenos',
+      contactRows: [
+        { icon: 'W', label: 'WhatsApp', value: '+505 7650-7993' },
+        { icon: '@', label: 'Correo', value: 'citas@clinicakeyser.com' },
+        { icon: '·', label: 'Dirección', value: 'Restaurante Antonche 270mts al sur' },
+        { icon: '◷', label: 'Horario', value: 'Lun–Vie 8am–5pm · Sáb 8am–1pm' },
+        { icon: '+', label: 'Emergencias', value: 'Atendemos emergencias y a domicilio' }
+      ],
+      faqEyebrow: 'Preguntas frecuentes', faqTitle: 'Resolvemos tus dudas',
+      faqs: [
+        { q: '¿Necesito cita previa o atienden sin reserva?', a: 'Recomendamos reservar para garantizar tu horario, pero también atendemos consultas el mismo día según disponibilidad.' },
+        { q: '¿Tienen laboratorio clínico propio?', a: 'Sí. Contamos con laboratorio clínico completo para realizar todos tus exámenes con resultados rápidos y confiables.' },
+        { q: '¿Qué tratamientos estéticos ofrecen?', a: 'Eliminación de tatuajes y manchas con láser, endolift, lipólisis, peelings, Hollywood Peel, rellenos y nuestro exclusivo Plasma Gel, entre otros.' },
+        { q: '¿Atienden a niños?', a: 'Sí, contamos con pediatría, cirugía pediátrica y neurología pediátrica para el cuidado integral de los más pequeños.' },
+        { q: '¿Cómo confirmo mi cita?', a: 'Tras enviar tu solicitud, te contactamos por WhatsApp al +505 7650-7993 para confirmar fecha, hora y detalles.' }
+      ],
+      ctaTitle: 'Da el primer paso hacia tu bienestar', ctaSub: 'Agenda hoy y recibe atención cercana y profesional.',
+      footerAbout: 'Clínica multiespecialidad con servicios médico-quirúrgicos y estéticos en Chinandega, Nicaragua.',
+      footerNav: 'Navegación', footerContact: 'Contacto', followLabel: 'Síguenos', rights: 'Todos los derechos reservados.'
+    };
+
+    const en = {
+      tagline: 'Multispecialty Clinic',
+      book: 'Book appointment', bookShort: 'Book', book2: 'Schedule', menuLabel: 'Sections',
+      privAccess: 'Private access', privTitle: 'Private access', privSubtitle: 'Clinic billing & management system', privUserLabel: 'Username', privPassLabel: 'Password', privBtn: 'Sign in', privNote: 'Exclusive access for authorized Clínica Keyser staff.', privErrorMsg: 'Enter your username and password.', privSuccessTitle: 'Access verified', privSuccessMsg: 'Connecting to the management system…', privOpenSys: 'Open system', privPending: 'Your system link will be configured here.',
+      nav: { servicios: 'Services', nosotros: 'About', precios: 'Pricing', resultados: 'Results', videos: 'Videos', testimonios: 'Reviews', contacto: 'Contact' },
+      heroBadge: 'Same-day appointments available',
+      heroL1: 'Your health and', heroL2: 'wellbeing', heroL3: 'in one place.',
+      heroSub: 'Medical-surgical specialties and advanced aesthetic treatments, with an in-house clinical lab and a certified team that cares about every detail.',
+      heroCta: 'Book my appointment', heroWa: 'Message us on WhatsApp',
+      heroPoints: ['Certified medical team', 'In-house clinical lab', 'State-of-the-art technology'],
+      phClinic: 'clinic photo', phTeam: 'medical team photo', phPhoto: 'photo', phMap: 'location map',
+      openNow: 'Emergencies 24/7 · Home visits', hoursShort: 'Mon–Fri 8am–5pm · Sat 8am–1pm', locShort: 'Restaurante Antonche 270mts al sur',
+      hoursLabel: 'Opening hours', hoursWeekDay: 'Mon–Fri', hoursWeekTime: '8am–5pm', hoursSatDay: 'Saturday', hoursSatTime: '8am–1pm', emergencyTag: 'Emergencies & home visits',
+      specCount: 'services and specialties under one roof',
+      trust: [
+        { k: '+20', v: 'Services & specialties' },
+        { k: 'Same day', v: 'Appointments & assessments' },
+        { k: 'Own lab', v: 'Results without the wait' },
+        { k: 'Team', v: 'Certified professionals' }
+      ],
+      svcEyebrow: 'What we do', svcTitle: 'Services & specialties', svcSub: 'From advanced aesthetic treatments to medical-surgical consultations. Pick a category to explore.',
+      tabEstetica: 'Aesthetics', tabMedico: 'Medical-surgical',
+      exclusive: 'Exclusive', bookShort2: 'Book',
+      estetica: [
+        { name: 'Laser tattoo removal', desc: 'Safe, progressive tattoo fading with laser technology.' },
+        { name: 'Warts & spots removal', desc: 'Removal of warts, moles and skin spots.' },
+        { name: 'Endolift & lipolysis', desc: 'Localized fat reduction and firming without surgery.' },
+        { name: 'Vaginal tightening', desc: 'Non-surgical intimate rejuvenation with laser technology.' },
+        { name: 'Facial cleansing', desc: 'Deep cleansing that renews and brightens your skin.' },
+        { name: 'Chemical peel', desc: 'Cell renewal for smoother, more luminous skin.' },
+        { name: 'Hollywood Peel', desc: 'Activated carbon laser for an instantly radiant face.' },
+        { name: 'Dermal fillers', desc: 'Hyaluronic acid for volume, contour and hydration.' },
+        { name: 'Plasma Gel', desc: 'Our exclusive service: regenerative filler from your own plasma.', exclusive: true }
+      ],
+      medico: [
+        { name: 'Pediatrics', desc: 'Comprehensive care for babies, children and teens.' },
+        { name: 'Pediatric surgery', desc: 'Specialized surgical procedures for children.' },
+        { name: 'Internal medicine', desc: 'Diagnosis and management of adult conditions.' },
+        { name: 'General medicine', desc: 'Primary care and health checks for the whole family.' },
+        { name: 'Gynecology', desc: 'Women\u2019s health, checkups and integral care.' },
+        { name: 'General surgery', desc: 'Safe surgical assessment and procedures.' },
+        { name: 'Pediatric neurology', desc: 'Specialized care for the child nervous system.' },
+        { name: 'Dentistry', desc: 'Dental health, aesthetics and oral prevention.' },
+        { name: 'Psychology', desc: 'Professional emotional support and wellbeing.' },
+        { name: 'Ultrasound', desc: 'Accurate imaging studies, right when you need them.' },
+        { name: 'EKG', desc: 'Electrocardiogram to assess your heart health.' },
+        { name: 'Blood-pressure Holter', desc: 'Continuous 24-hour blood pressure monitoring.' },
+        { name: 'Clinical laboratory', desc: 'Complete testing with fast, reliable results.' }
+      ],
+      aboutEyebrow: 'About us', aboutTitle: 'Medicine that blends science and warmth',
+      aboutP1: 'At Clínica Keyser we bring medical-surgical specialties and aesthetic treatments together in one space, so you and your family get complete care without running from place to place.',
+      aboutP2: 'We have our own clinical lab, modern diagnostic equipment and a team of professionals committed to your health and trust.',
+      values: [
+        { t: 'Close care', d: 'We listen and walk with you every step.' },
+        { t: 'Technology', d: 'Modern equipment for precise diagnostics.' },
+        { t: 'All in one place', d: 'Consultations, tests and treatments.' },
+        { t: 'Trust', d: 'Certified, experienced professionals.' }
+      ],
+      teamTitle: 'Our team',
+      team: [
+        { name: 'Dr. Sergio Herrera', role: 'Aesthetic & General Physician · Owner', note: 'Aesthetic medicine, general medicine and clinical & advanced ultrasound. MINSA code 95520.', photo: '/keyser-prototype/assets/dr-sergio.png' },
+        { name: 'Dr. Pablo Navarrete', role: 'Pediatric neurologist', note: 'Headaches, epilepsy, sleep disorders, ADHD, neurodevelopmental syndromes and autism.', photo: '/keyser-prototype/assets/dr-pablo.png' },
+        { name: 'Dr. Howard Amador', role: 'Pediatric surgeon', note: 'Minimally invasive laparoscopic pediatric surgery (appendicitis and more), with fast recovery.', photo: '/keyser-prototype/assets/dr-howard.png' },
+        { name: 'Dr. Yader Rivera', role: 'Internist · Clinical Cardiologist', note: 'Subspecialist in clinical cardiology: coronary disease, hypertension, heart failure, arrhythmias and valve disease.', photo: '/keyser-prototype/assets/dr-yader.png' },
+        { name: 'Dr. Esau García', role: 'Internist · Intensive Care', note: 'Intensive-care subspecialist: critical patient management, acute & chronic disease and critical ultrasound.', photo: '/keyser-prototype/assets/dr-esau.png' },
+        { name: 'Lic. Julissa Quezada', role: 'Clinical Psychologist', note: 'Assessment and diagnosis, individual therapy for teens and adults, anxiety, depression, stress and grief management.', photo: '/keyser-prototype/assets/dr-julissa.png' },
+        { name: 'Dra. Yamilet Duarte', role: 'Dental Surgeon', note: 'General dentistry: cleaning, fillings, extractions, root canals and crowns & bridges.', photo: '/keyser-prototype/assets/dr-yamilet.png' },
+        { name: 'Dr. Joseph Yesca', role: 'Orthopedic & Trauma Surgeon', note: 'Simple and complex fractures, minimally invasive trauma, spine conditions and diabetic foot care.', photo: '/keyser-prototype/assets/dr-joseph.png' },
+      ],
+      gynEyebrow: 'Gynecology', gynTitle: 'Women\'s health & wellbeing', gynSub: 'Comprehensive, preventive gynecological care, with in-office procedures and family planning all in one place.', gynCta: 'Book a gynecology consult',
+      gynProcedures: [
+        { t: 'Pap smear', d: 'Early detection of cervical cancer.' },
+        { t: 'Colposcopy', d: 'Detailed cervix evaluation after abnormal results.' },
+        { t: 'HPV vaccine', d: 'Human papillomavirus prevention.' },
+        { t: 'IUD placement', d: 'Safe, reversible long-term contraception.' },
+        { t: 'Subdermal implant', d: 'Discreet, effective contraception for several years.' },
+        { t: 'Gynecological check-up', d: 'Comprehensive check and women\'s health counseling.' }
+      ],
+      priceEyebrow: 'Pricing', priceTitle: 'Clear plans, no surprises', priceSub: 'Reference prices so you have an idea before your visit. The initial assessment defines the ideal plan for you.',
+      from: 'From', popular: 'Most requested',
+      pricing: [
+        { kicker: 'General consult', price: 'C$ 500', unit: 'per visit', items: ['General medicine care', 'Prescription & treatment plan', 'Specialist referral if needed'] },
+        { kicker: 'Specialist consult', price: 'C$ 800', unit: 'per specialist', items: ['Pediatrics, gynecology, internal & more', 'Detailed evaluation', 'Personalized follow-up'], featured: true },
+        { kicker: 'Aesthetic assessment', price: '$20', unit: 'initial assessment', items: ['Skin and needs diagnosis', 'Tailored treatment plan', 'Credited toward your procedure'] }
+      ],
+      priceNote: '*Reference prices in córdobas, subject to assessment. Final cost confirmed when booking.',
+      resultsEyebrow: 'Real results', resultsTitle: 'Plasma Gel before & after', resultsP: 'Plasma Gel is our exclusive treatment: a regenerative filler made from your own plasma to add volume, define contour and improve skin quality naturally. These are real results from our patients.', resultsBadge: 'Exclusive to Clínica Keyser', resultsCta: 'I want these results', resultsDisc: '*Result from a real patient. Results may vary from person to person.', resultsAlt: 'Before and after a Plasma Gel treatment',
+      testEyebrow: 'Reviews', testTitle: 'What our patients say',
+      testimonials: [
+        { quote: 'They saw me the same day and the lab gave me results super fast. Excellent care.', name: 'María G.', svc: 'Clinical lab', initial: 'M' },
+        { quote: 'The Hollywood Peel left my skin amazing. The team is so professional and warm.', name: 'Andrea L.', svc: 'Aesthetic treatment', initial: 'A' },
+        { quote: 'I bring my kids to pediatrics here. Total trust and first-class care.', name: 'Carlos R.', svc: 'Pediatrics', initial: 'C' }
+      ],
+      videosEyebrow: 'Video', videosTitle: 'Plasma Gel fillers, explained', videosSub: 'Discover what our exclusive Plasma Gel treatment involves: a regenerative filler made from your own plasma to add volume and improve your skin naturally.',
+      clipsLabel: 'More procedures', clip2Tag: 'Real procedure', clip2Title: 'Skin tag removal (acrochordons)',
+      bookEyebrow: 'Booking', bookTitle: 'Book your appointment in minutes', bookSub: 'Pick your service, day and time. We\u2019ll confirm via WhatsApp as soon as possible.',
+      bookPerks: [
+        { t: 'Fast confirmation', d: 'We message you to confirm your appointment.' },
+        { t: 'Reminders', d: 'We remind you of your appointment via WhatsApp.' },
+        { t: 'Easy reschedule', d: 'Change your appointment whenever you need.' }
+      ],
+      waBook: 'I\u2019d rather book on WhatsApp',
+      steps: ['Service', 'Date & time', 'Your details', 'Done'],
+      s1Title: 'Which service do you need?',
+      s2Title: 'Choose date and time', dateLabel: 'Date', timeLabel: 'Available time',
+      s3Title: 'Your contact details', nameLabel: 'Full name', namePh: 'e.g. María González', phoneLabel: 'Phone / WhatsApp', emailLabel: 'Email', notesLabel: 'Notes (optional)', notesPh: 'Briefly tell us the reason for your visit…',
+      doneTitle: 'Request sent!', doneSub: 'We\u2019ve received your appointment request. We\u2019ll contact you soon via WhatsApp to confirm.',
+      sumService: 'Service', sumWhen: 'Date & time', sumName: 'Name', newBooking: 'Make another booking',
+      back: 'Back', next: 'Continue', confirm: 'Confirm appointment',
+      errNameMsg: 'Enter your name', errPhoneMsg: 'Enter a valid phone', errEmailMsg: 'Enter a valid email',
+      errService: 'Select a service to continue', errDate: 'Pick a date and a time',
+      openMaps: 'Get directions',
+      contactEyebrow: 'Contact', contactTitle: 'Visit us or write to us',
+      contactRows: [
+        { icon: 'W', label: 'WhatsApp', value: '+505 7650-7993' },
+        { icon: '@', label: 'Email', value: 'citas@clinicakeyser.com' },
+        { icon: '·', label: 'Address', value: 'Restaurante Antonche 270mts al sur' },
+        { icon: '◷', label: 'Hours', value: 'Mon–Fri 8am–5pm · Sat 8am–1pm' },
+        { icon: '+', label: 'Emergencies', value: 'We handle emergencies and home visits' }
+      ],
+      faqEyebrow: 'FAQ', faqTitle: 'We answer your questions',
+      faqs: [
+        { q: 'Do I need an appointment or do you take walk-ins?', a: 'We recommend booking to guarantee your slot, but we also see same-day visits based on availability.' },
+        { q: 'Do you have your own clinical lab?', a: 'Yes. We have a complete clinical lab to run all your tests with fast, reliable results.' },
+        { q: 'What aesthetic treatments do you offer?', a: 'Laser tattoo and spot removal, endolift, lipolysis, peels, Hollywood Peel, fillers and our exclusive Plasma Gel, among others.' },
+        { q: 'Do you treat children?', a: 'Yes, we offer pediatrics, pediatric surgery and pediatric neurology for the integral care of the little ones.' },
+        { q: 'How do I confirm my appointment?', a: 'After you send your request, we contact you on WhatsApp at +505 7650-7993 to confirm date, time and details.' }
+      ],
+      ctaTitle: 'Take the first step toward your wellbeing', ctaSub: 'Book today and get close, professional care.',
+      footerAbout: 'Multispecialty clinic with medical-surgical and aesthetic services in Chinandega, Nicaragua.',
+      footerNav: 'Navigation', footerContact: 'Contact', followLabel: 'Follow us', rights: 'All rights reserved.'
+    };
+
+    return this.state.lang === 'en' ? en : es;
+  }
+
+  validate() {
+    const b = this.state.b, t = this.strings();
+    return {
+      name: b.name.trim() ? '' : t.errNameMsg,
+      phone: b.phone.replace(/[^0-9]/g, '').length >= 7 ? '' : t.errPhoneMsg,
+      email: /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(b.email.trim()) ? '' : t.errEmailMsg
+    };
+  }
+
+  bookNext() {
+    const b = this.state.b, t = this.strings();
+    if (b.step === 1) { if (!b.service) { this.setB({ triedNext: true }); return; } this.setB({ step: 2, triedNext: false }); return; }
+    if (b.step === 2) { if (!b.date || !b.time) { this.setB({ triedNext: true }); return; } this.setB({ step: 3, triedNext: false }); return; }
+    if (b.step === 3) {
+      const e = this.validate();
+      if (e.name || e.phone || e.email) { this.setB({ triedNext: true }); return; }
+      this.setB({ step: 4, done: true, triedNext: false }); return;
+    }
+  }
+
+  renderVals() {
+    const t = this.strings();
+    const b = this.state.b;
+    const isMobile = this.state.width < 880;
+    const tints = ['#FDECEC', '#EAF1FB', '#EAF6F0', '#F3EDFB', '#FBF1E8'];
+    const inks = ['#ED3237', '#2F61C4', '#1f9d63', '#7a4bce', '#c47a2f'];
+
+    const ICON = {
+      spark: 'M12 3v3 M12 18v3 M3 12h3 M18 12h3 M6.2 6.2l2 2 M15.8 15.8l2 2 M17.8 6.2l-2 2 M8.2 15.8l-2 2',
+      droplet: 'M12 4c2.5 3.4 4.5 5.7 4.5 8.1a4.5 4.5 0 1 1-9 0C7.5 9.7 9.5 7.4 12 4z',
+      wave: 'M3 12h3.5l2-6 3.5 12 2.5-6H21',
+      heart: 'M12 20s-6.5-4.2-6.5-9A3.6 3.6 0 0 1 12 8a3.6 3.6 0 0 1 6.5 3c0 4.8-6.5 9-6.5 9z',
+      shield: 'M12 3l7 3v5c0 4.4-3 7-7 9-4-2-7-4.6-7-9V6l7-3z',
+      scan: 'M4 8V6a2 2 0 0 1 2-2h2 M16 4h2a2 2 0 0 1 2 2v2 M20 16v2a2 2 0 0 1-2 2h-2 M8 20H6a2 2 0 0 1-2-2v-2 M7 12h10',
+      search: 'M10 5a5 5 0 1 0 0 10 5 5 0 0 0 0-10z M14 14l5 5',
+      scope: 'M6 4v5a4 4 0 0 0 8 0V4 M10 17a3 3 0 0 0 6 0v-1 M18 11a2 2 0 1 0 0 4 2 2 0 0 0 0-4z M6 4H4.5 M14 4h1.5',
+      baby: 'M12 4a4.5 4.5 0 0 1 4.5 4.5v.5a4.5 4.5 0 0 1-9 0v-.5A4.5 4.5 0 0 1 12 4z M9.7 9.6h.01 M14.3 9.6h.01 M10 12.2a3 3 0 0 0 4 0',
+      tooth: 'M8.6 3.9C6.9 3.9 5.7 5.1 5.7 7.2c0 3.7 1 11.9 2.3 11.9.9 0 1-3 1.7-3s.8 3 1.7 3c1.3 0 2.3-8.2 2.3-11.9 0-2.1-1.2-3.3-2.9-3.3-1 0-1.4.5-1.6.5s-.6-.5-1.5-.5z',
+      flask: 'M9 3h6 M10 3v5l-4.2 8.3A1.6 1.6 0 0 0 7.2 19h9.6a1.6 1.6 0 0 0 1.4-2.7L14 8V3 M7.5 14h9',
+      calendar: 'M5 5h14a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z M3.8 9.5h16.4 M9 3v4 M15 3v4',
+      bell: 'M6 9a6 6 0 0 1 12 0c0 4.5 2 5.5 2 5.5H4S6 13.5 6 9z M10 19a2 2 0 0 0 4 0',
+      refresh: 'M19.4 9A7.5 7.5 0 1 0 20 13 M20 4.5V9h-4.5',
+      capsule: 'M9.5 14.5l5-5a3.2 3.2 0 0 0-4.5-4.5l-5 5a3.2 3.2 0 0 0 4.5 4.5z M7.2 7.2l4.6 4.6',
+      check: 'M5 12.5l4.5 4.5L19 8'
+    };
+    const ESTE_ICONS = [ICON.spark, ICON.search, ICON.wave, ICON.shield, ICON.droplet, ICON.droplet, ICON.spark, ICON.droplet, ICON.heart];
+    const MED_ICONS = [ICON.baby, ICON.baby, ICON.scope, ICON.scope, ICON.scan, ICON.wave, ICON.heart, ICON.flask, ICON.shield, ICON.scope, ICON.baby, ICON.tooth, ICON.heart];
+
+    const makeServices = (arr, cat, icons) => arr.map((s, i) => ({
+      ...s,
+      tint: tints[i % tints.length],
+      ink: inks[i % inks.length],
+      icon: (icons && icons[i]) || ICON.spark,
+      cardStyle: 'background:#fff;border:1px solid #E7ECF4;border-radius:18px;padding:22px;display:flex;flex-direction:column;transition:transform .15s,box-shadow .15s;' + (s.exclusive ? 'box-shadow:0 0 0 1.5px #ED3237 inset;' : ''),
+      book: () => { this.setB({ cat, service: s.name, step: 1, done: false, triedNext: false }); this.setState({ tab: cat }); this.scrollTo('reservar'); }
+    }));
+    const estetica = makeServices(t.estetica, 'estetica', ESTE_ICONS);
+    const medico = makeServices(t.medico, 'medico', MED_ICONS);
+    const activeServices = this.state.tab === 'medico' ? medico : estetica;
+
+    const tabBtn = (active) => 'border:none;cursor:pointer;border-radius:999px;padding:9px 18px;font-weight:700;font-size:14px;transition:all .15s;' + (active ? 'background:#1B2A57;color:#fff;box-shadow:0 4px 12px rgba(27,42,87,.2);' : 'background:transparent;color:#56608a;');
+    const langBtn = (active) => 'border:none;cursor:pointer;border-radius:999px;padding:6px 13px;font-weight:700;font-size:13px;transition:all .15s;' + (active ? 'background:#fff;color:#1B2A57;box-shadow:0 1px 4px rgba(27,42,87,.14);' : 'background:transparent;color:#7b84a3;');
+
+    const navLinks = [
+      { label: t.nav.servicios, go: (e) => { e && e.preventDefault(); this.scrollTo('servicios'); } },
+      { label: t.nav.nosotros, go: (e) => { e && e.preventDefault(); this.scrollTo('nosotros'); } },
+      { label: t.nav.precios, go: (e) => { e && e.preventDefault(); this.scrollTo('precios'); } },
+      { label: t.nav.resultados, go: (e) => { e && e.preventDefault(); this.scrollTo('resultados'); } },
+      { label: t.nav.videos, go: (e) => { e && e.preventDefault(); this.scrollTo('videos'); } },
+      { label: t.nav.testimonios, go: (e) => { e && e.preventDefault(); this.scrollTo('testimonios'); } },
+      { label: t.nav.contacto, go: (e) => { e && e.preventDefault(); this.scrollTo('contacto'); } }
+    ];
+
+    // pricing
+    const pricing = t.pricing.map(p => {
+      const f = p.featured;
+      return {
+        ...p,
+        cardStyle: 'position:relative;border-radius:20px;padding:30px 26px;display:flex;flex-direction:column;' + (f ? 'background:#1B2A57;box-shadow:0 24px 50px rgba(27,42,87,.22);' : 'background:#fff;border:1px solid #E7ECF4;'),
+        label: f ? '#ff9ea0' : '#ED3237',
+        strong: f ? '#fff' : '#1B2A57',
+        muted: f ? '#9aa6c8' : '#9aa3bd',
+        text: f ? '#dde3f3' : '#48527a',
+        rule: f ? '#314272' : '#EEF1F8',
+        check: f ? '#ff9ea0' : '#2bb673',
+        btnStyle: 'margin-top:24px;border:none;cursor:pointer;font-weight:700;font-size:15px;padding:13px;border-radius:12px;' + (f ? 'background:#ED3237;color:#fff;' : 'background:#1B2A57;color:#fff;'),
+        book: () => { this.scrollTo('reservar'); }
+      };
+    });
+
+    // booking steps progress
+    const steps = t.steps.map((label, i) => {
+      const n = i + 1;
+      const active = b.step === n;
+      const doneStep = b.step > n;
+      return {
+        n: doneStep ? '✓' : String(n),
+        label,
+        style: 'flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:14px 6px;' + (active ? 'background:#F5F8FD;' : '') + (isMobile && !active ? 'display:none;' : 'display:flex;'),
+        dot: 'width:24px;height:24px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;' + (active ? 'background:#ED3237;color:#fff;' : doneStep ? 'background:#2bb673;color:#fff;' : 'background:#E7ECF4;color:#9aa3bd;')
+      };
+    });
+
+    // service chips for booking step 1
+    const chipList = this.state.b.cat === 'medico' ? t.medico : t.estetica;
+    const bookServiceChips = chipList.map(s => {
+      const sel = b.service === s.name;
+      return {
+        name: s.name,
+        style: 'border:1px solid ' + (sel ? '#ED3237' : '#DCE3F0') + ';cursor:pointer;background:' + (sel ? '#FDECEC' : '#fff') + ';color:' + (sel ? '#ED3237' : '#48527a') + ';font-weight:600;font-size:13.5px;padding:10px 15px;border-radius:999px;transition:all .12s;',
+        select: () => this.setB({ service: s.name })
+      };
+    });
+
+    const slots = ['08:00', '09:00', '10:00', '11:00', '12:00', '14:00', '15:00', '16:00', '17:00'];
+    const timeSlots = slots.map(s => {
+      const sel = b.time === s;
+      return {
+        t: s,
+        style: 'border:1px solid ' + (sel ? '#ED3237' : '#DCE3F0') + ';cursor:pointer;background:' + (sel ? '#FDECEC' : '#fff') + ';color:' + (sel ? '#ED3237' : '#48527a') + ';font-weight:600;font-size:14px;padding:11px 0;border-radius:10px;',
+        select: () => this.setB({ time: s })
+      };
+    });
+
+    const errs = this.validate();
+    const tried = b.triedNext;
+    const inputBase = (bad) => 'width:100%;padding:13px 15px;border:1px solid ' + (bad ? '#ED3237' : '#DCE3F0') + ';border-radius:12px;font-size:15px;color:#1B2A57;outline:none;';
+
+    const faqs = t.faqs.map((f, i) => {
+      const open = this.state.faq === i;
+      return {
+        ...f,
+        open,
+        toggle: () => this.setState(s => ({ faq: s.faq === i ? -1 : i })),
+        iconStyle: 'flex-shrink:0;width:28px;height:28px;border-radius:50%;background:' + (open ? '#ED3237' : '#EEF2FA') + ';color:' + (open ? '#fff' : '#1B2A57') + ';display:inline-flex;align-items:center;justify-content:center;font-size:20px;font-weight:400;transition:all .2s;transform:rotate(' + (open ? '45deg' : '0deg') + ');'
+      };
+    });
+
+    const bWhen = b.date ? (b.date + (b.time ? ' · ' + b.time : '')) : (b.time || '—');
+    const waLink = 'https://wa.me/50576507993';
+    const mapsLink = 'https://www.google.com/maps/search/?api=1&query=12.62646,-87.12328';
+
+    return {
+      t, isMobile, isDesktop: !isMobile,
+      navOpen: this.state.navOpen,
+      showMobileMenu: isMobile && this.state.navOpen,
+      toggleNav: () => this.setState(s => ({ navOpen: !s.navOpen })),
+      goTop: (e) => { e && e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); this.setState({ navOpen: false }); },
+      setLangEs: () => this.setState({ lang: 'es' }),
+      setLangEn: () => this.setState({ lang: 'en' }),
+      esBtn: langBtn(this.state.lang === 'es'),
+      enBtn: langBtn(this.state.lang === 'en'),
+      navLinks,
+      goBook: (e) => { e && e.preventDefault(); this.scrollTo('reservar'); },
+      menuOpen: this.state.menuOpen,
+      toggleMenu: () => this.setState(s => ({ menuOpen: !s.menuOpen })),
+      closeMenu: () => this.setState({ menuOpen: false }),
+      menuChevron: 'display:inline-block;transition:transform .2s;font-size:13px;line-height:1;transform:translateY(-1px) rotate(' + (this.state.menuOpen ? '180deg' : '0deg') + ')',
+      openPriv: () => this.setState({ privOpen: true }),
+      closePriv: () => this.setState({ privOpen: false, privTried: false, privDone: false, privUser: '', privPass: '' }),
+      stopProp: (e) => { if (e && e.stopPropagation) e.stopPropagation(); },
+      onPrivUser: (e) => this.setState({ privUser: e.target.value }),
+      onPrivPass: (e) => this.setState({ privPass: e.target.value }),
+      privSubmit: () => {
+        if (!this.state.privUser.trim() || !this.state.privPass.trim()) { this.setState({ privTried: true }); return; }
+        this.setState({ privDone: true, privTried: false });
+      },
+      openSystem: () => { window.location.href = '/login?next=/panel'; },
+      privOpen: this.state.privOpen,
+      privFormOpen: !this.state.privDone,
+      privDone: this.state.privDone,
+      privUser: this.state.privUser,
+      privPass: this.state.privPass,
+      privError: (this.state.privTried && (!this.state.privUser.trim() || !this.state.privPass.trim())) ? t.privErrorMsg : '',
+      waLink, mapsLink,
+      heroPoints: t.heroPoints,
+      trust: t.trust,
+      showHeroPlay: !this.state.heroPlaying,      playHero: () => {
+        const el = document.getElementById('heroVideo');
+        if (el) { this._activated['heroVideo'] = true; el.muted = false; el.loop = true; el.controls = true; el.currentTime = 0; const p = el.play(); if (p && p.catch) p.catch(() => {}); }
+        this.setState({ heroPlaying: true });
+      },
+      // services
+      tabEstetica: () => this.setState({ tab: 'estetica' }),
+      tabMedico: () => this.setState({ tab: 'medico' }),
+      tabEsteticaStyle: tabBtn(this.state.tab === 'estetica'),
+      tabMedicoStyle: tabBtn(this.state.tab === 'medico'),
+      activeServices,
+      // about
+      values: t.values, team: t.team.map(m => ({ ...m, noPhoto: !m.photo })),
+      // gynecology
+      gynProcedures: t.gynProcedures.map((g, i) => ({ ...g, icon: [ICON.search, ICON.scan, ICON.shield, ICON.capsule, ICON.capsule, ICON.calendar][i] || ICON.shield })),
+      gynBook: () => { const g = t.medico.find(s => /inecolog/i.test(s.name)); this.setB({ cat: 'medico', service: g ? g.name : '', step: 1, done: false, triedNext: false }); this.setState({ tab: 'medico' }); this.scrollTo('reservar'); },
+      // pricing
+      pricing,
+      // results
+      resultsBook: () => { const list = t.estetica; const pg = list[list.length - 1]; this.setB({ cat: 'estetica', service: pg.name, step: 1, done: false, triedNext: false }); this.setState({ tab: 'estetica' }); this.scrollTo('reservar'); },
+      // video
+      showExplainerPlay: !this.state.explainerPlaying,
+      playExplainer: () => {
+        const el = document.getElementById('explainerVideo');
+        if (el) { this._activated['explainerVideo'] = true; el.muted = false; el.loop = true; el.controls = true; el.currentTime = 0; const p = el.play(); if (p && p.catch) p.catch(() => {}); }
+        this.setState({ explainerPlaying: true });
+      },
+      showClip2Play: !this.state.clip2Playing,
+      playClip2: () => {
+        const el = document.getElementById('clip2Video');
+        if (el) { this._activated['clip2Video'] = true; el.muted = false; el.loop = true; el.controls = true; el.currentTime = 0; const p = el.play(); if (p && p.catch) p.catch(() => {}); }
+        this.setState({ clip2Playing: true });
+      },
+      // testimonials
+      testimonials: t.testimonials,
+      // booking
+      bookPerks: t.bookPerks.map((p, i) => ({ ...p, icon: [ICON.check, ICON.bell, ICON.refresh][i] || ICON.check })),
+      steps,
+      isStep1: b.step === 1, isStep2: b.step === 2, isStep3: b.step === 3, isDone: b.step === 4,
+      bCatEstetica: () => this.setB({ cat: 'estetica' }),
+      bCatMedico: () => this.setB({ cat: 'medico' }),
+      bCatEsteticaStyle: tabBtn(b.cat === 'estetica'),
+      bCatMedicoStyle: tabBtn(b.cat === 'medico'),
+      bookServiceChips,
+      timeSlots,
+      bDate: b.date, bTime: b.time, bName: b.name, bPhone: b.phone, bEmail: b.email, bNotes: b.notes,
+      bService: b.service || '—', bWhen,
+      onDate: (e) => this.setB({ date: e.target.value }),
+      onName: (e) => this.setB({ name: e.target.value }),
+      onPhone: (e) => this.setB({ phone: e.target.value }),
+      onEmail: (e) => this.setB({ email: e.target.value }),
+      onNotes: (e) => this.setB({ notes: e.target.value }),
+      nameInputStyle: inputBase(tried && errs.name),
+      phoneInputStyle: inputBase(tried && errs.phone),
+      emailInputStyle: inputBase(tried && errs.email),
+      errName: tried ? errs.name : '',
+      errPhone: tried ? errs.phone : '',
+      errEmail: tried ? errs.email : '',
+      showBookNav: b.step <= 3,
+      canBack: b.step > 1,
+      bookPrev: () => this.setB({ step: Math.max(1, b.step - 1), triedNext: false }),
+      bookNext: () => this.bookNext(),
+      nextLabel: b.step === 3 ? t.confirm : t.next,
+      bookReset: () => this.setState({ b: { step: 1, cat: 'estetica', service: '', date: '', time: '', name: '', phone: '', email: '', notes: '', done: false, triedNext: false } }),
+      // contact / faq
+      contactRows: t.contactRows,
+      faqs
+    };
+  }
+}
+</script>
+</body>
+</html>

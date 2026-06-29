@@ -15,6 +15,10 @@ export async function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
   const token = request.cookies.get('ck_access_token')?.value;
 
+  if (pathname.startsWith('/keyser-prototype/')) {
+    return NextResponse.next();
+  }
+
   if (publicRoutes.has(pathname)) {
     if (pathname === '/login' && token && await isValid(token)) {
       return NextResponse.redirect(new URL('/panel', request.url));
