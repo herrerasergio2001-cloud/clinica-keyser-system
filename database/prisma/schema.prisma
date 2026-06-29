@@ -1004,20 +1004,23 @@ model ClinicalDocument {
 }
 
 model Appointment {
-  id           String    @id @default(cuid())
-  patientId    String
-  patient      Patient   @relation(fields: [patientId], references: [id])
-  doctorId     String
-  startsAt     DateTime
-  endsAt       DateTime
-  reason       String?
-  status       String    @default("SCHEDULED")
-  cancelledAt  DateTime?
-  cancelledBy  String?
-  cancelReason String?
-  isDeleted    Boolean   @default(false)
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  id              String   @id @default(cuid())
+  patientId       String
+  patient         Patient  @relation(fields: [patientId], references: [id])
+  doctorId        String
+  startsAt        DateTime
+  endsAt          DateTime
+  reason          String?
+  status          String   @default("SCHEDULED")
+  cancelledAt     DateTime?
+  cancelledBy     String?
+  cancelReason    String?
+  source          String   @default("IN_PERSON")
+  publicRequestId String?  @unique
+  publicRequest   PublicBookingRequest? @relation(fields: [publicRequestId], references: [id], onDelete: SetNull)
+  isDeleted       Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   @@index([status])
   @@index([isDeleted])
@@ -1575,6 +1578,9 @@ model PublicService {
   imageUrl     String?
   category     String?
   whatsappText String?
+  pricing      String?
+  exclusiveTag String?
+  procedures   String[] @default([])
   isActive     Boolean  @default(true)
   sortOrder    Int      @default(0)
   createdAt    DateTime @default(now())
@@ -1669,6 +1675,86 @@ model PublicTeamMember {
 
   @@index([isActive])
   @@index([sortOrder])
+}
+
+model PublicTestimonial {
+  id          String   @id @default(cuid())
+  quote       String   @db.Text
+  patientName String
+  service     String
+  rating      Int      @default(5)
+  photoUrl    String?
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  verified    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([isActive])
+  @@index([sortOrder])
+}
+
+model PublicPricingPlan {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  kicker      String
+  description String   @db.Text
+  price       String
+  currency    String   @default("C$")
+  unit        String
+  category    String   @default("medical")
+  features    String[] @default([])
+  isFeatured  Boolean  @default(false)
+  isPopular   Boolean  @default(false)
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([isActive])
+  @@index([category])
+  @@index([sortOrder])
+}
+
+model PublicProcedure {
+  id          String   @id @default(cuid())
+  name        String
+  description String   @db.Text
+  specialty   String
+  icon        String?
+  imageUrl    String?
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([isActive])
+  @@index([specialty])
+  @@index([sortOrder])
+}
+
+model PublicBookingRequest {
+  id            String   @id @default(cuid())
+  service       String
+  requestedDate DateTime
+  requestedTime String?
+  patientName   String
+  patientPhone  String
+  patientEmail  String
+  patientNotes  String?  @db.Text
+  status        String   @default("PENDING")
+  appointmentId String?
+  appointment   Appointment?
+  respondedAt   DateTime?
+  respondedBy   String?
+  responseNotes String?  @db.Text
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([status])
+  @@index([patientEmail])
+  @@index([requestedDate])
+  @@index([createdAt])
 }
 
 model PosSale {
