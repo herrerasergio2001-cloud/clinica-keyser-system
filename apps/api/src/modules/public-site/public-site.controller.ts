@@ -6,6 +6,7 @@ import { Permissions } from '../../shared/decorators/permissions.decorator';
 import { PermissionsGuard } from '../../shared/guards/permissions.guard';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import {
+  CreatePublicBookingRequestDto,
   PublicFAQDto,
   PublicGalleryImageDto,
   PublicNewsDto,
@@ -202,5 +203,38 @@ export class AdminPublicSiteController {
   @Permissions('*')
   deleteTeamMember(@Param('id') id: string, @CurrentUser() user: CurrentUser, @Ip() ipAddress: string) {
     return this.publicSite.delete('team', id, user, ipAddress);
+  }
+
+  @Get('public/testimonials')
+  testimonials(@Query('limit') limit?: number, @Query('offset') offset?: number) {
+    return this.publicSite.getTestimonials(limit || 10, offset || 0);
+  }
+
+  @Get('public/pricing-plans')
+  pricingPlans(@Query('category') category?: string, @Query('isFeatured') isFeatured?: string) {
+    const featured = isFeatured === 'true' ? true : isFeatured === 'false' ? false : undefined;
+    return this.publicSite.getPricingPlans(category, featured);
+  }
+
+  @Get('public/procedures')
+  procedures(@Query('specialty') specialty?: string) {
+    return this.publicSite.getProcedures(specialty);
+  }
+
+  @Post('public/booking-requests')
+  async createBookingRequest(@Body() dto: CreatePublicBookingRequestDto) {
+    const request = await this.publicSite.createBookingRequest(dto);
+    return {
+      id: request.id,
+      message: 'Booking request received. We will contact you soon.',
+    };
+  }
+
+  @Get('public/booking-requests/:id')
+  getBookingRequest(@Param('id') id: string, @Query('email') email: string) {
+    if (!email) {
+      return { error: 'Email is required' };
+    }
+    return this.publicSite.getBookingRequest(id, email);
   }
 }
