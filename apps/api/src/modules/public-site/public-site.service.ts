@@ -248,6 +248,94 @@ export class PublicSiteService {
     };
   }
 
+  async getTestimonials(limit = 10, offset = 0) {
+    return this.prisma.publicTestimonial.findMany({
+      where: { isActive: true },
+      orderBy: { sortOrder: 'asc' },
+      take: limit,
+      skip: offset,
+      select: {
+        id: true,
+        quote: true,
+        patientName: true,
+        service: true,
+        rating: true,
+        photoUrl: true,
+      },
+    });
+  }
+
+  async getPricingPlans(category?: string, isFeatured?: boolean) {
+    return this.prisma.publicPricingPlan.findMany({
+      where: {
+        isActive: true,
+        ...(category && { category }),
+        ...(isFeatured !== undefined && { isFeatured }),
+      },
+      orderBy: [{ isFeatured: 'desc' }, { sortOrder: 'asc' }],
+      select: {
+        id: true,
+        name: true,
+        kicker: true,
+        description: true,
+        price: true,
+        currency: true,
+        unit: true,
+        category: true,
+        features: true,
+        isFeatured: true,
+      },
+    });
+  }
+
+  async getProcedures(specialty?: string) {
+    return this.prisma.publicProcedure.findMany({
+      where: {
+        isActive: true,
+        ...(specialty && { specialty }),
+      },
+      orderBy: { sortOrder: 'asc' },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        specialty: true,
+        icon: true,
+        imageUrl: true,
+      },
+    });
+  }
+
+  async createBookingRequest(dto: { service: string; requestedDate: string; requestedTime?: string; patientName: string; patientPhone: string; patientEmail: string; patientNotes?: string }) {
+    return this.prisma.publicBookingRequest.create({
+      data: {
+        service: dto.service,
+        requestedDate: new Date(dto.requestedDate),
+        requestedTime: dto.requestedTime,
+        patientName: dto.patientName,
+        patientPhone: dto.patientPhone,
+        patientEmail: dto.patientEmail,
+        patientNotes: dto.patientNotes,
+        status: 'PENDING',
+      },
+      select: {
+        id: true,
+      },
+    });
+  }
+
+  async getBookingRequest(id: string, email: string) {
+    return this.prisma.publicBookingRequest.findFirst({
+      where: { id, patientEmail: email },
+      select: {
+        id: true,
+        status: true,
+        respondedAt: true,
+        responseNotes: true,
+      },
+    });
+  }
+
   private async uniqueSlug(kind: PublicModel, value: string, currentId?: string) {
     const base = this.slugify(value);
     let candidate = base;
