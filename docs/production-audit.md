@@ -189,9 +189,11 @@ Definir en Coolify:
 
 Para inicializar una base nueva:
 
-- `SEED_ADMIN_EMAIL`
-- `SEED_ADMIN_PASSWORD`
-- Opcionales: `SEED_ADMIN_NAME`, `SEED_ADMIN_SPECIALTY`, `SEED_ADMIN_MINSA_CODE`, `SEED_ADMIN_PHONE`
+- `ADMIN_EMAIL`
+- `ADMIN_PASSWORD` (mínimo 12 caracteres)
+- Opcionales: `ADMIN_NAME`, `SEED_ADMIN_SPECIALTY`, `SEED_ADMIN_MINSA_CODE`, `SEED_ADMIN_PHONE`
+
+`SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD` y `SEED_ADMIN_NAME` siguen soportados por compatibilidad, pero los despliegues nuevos deben usar `ADMIN_*`.
 
 ## GitHub
 

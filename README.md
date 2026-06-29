@@ -57,7 +57,8 @@ npm run dev
 ## Acceso inicial
 
 El seed no publica ni reutiliza contraseñas de prueba. Para crear el administrador
-inicial debe definir `SEED_ADMIN_EMAIL` y `SEED_ADMIN_PASSWORD` antes de ejecutar el seed. En una
+inicial debe definir `ADMIN_EMAIL` y `ADMIN_PASSWORD` antes de ejecutar el seed. `ADMIN_PASSWORD`
+debe tener al menos 12 caracteres. En una
 instalación existente, restablezca la contraseña mediante el script seguro
 `database/scripts/reset-password.mjs`.
 

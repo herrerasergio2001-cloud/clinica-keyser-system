@@ -32,13 +32,16 @@ async function main() {
   );
 
   const roleByName = new Map(roles.map((role) => [role.name, role]));
-  const seedAdminEmail = process.env.SEED_ADMIN_EMAIL?.trim().toLowerCase();
-  const seedAdminPassword = process.env.SEED_ADMIN_PASSWORD;
+  const seedAdminEmail = (process.env.ADMIN_EMAIL ?? process.env.SEED_ADMIN_EMAIL)?.trim().toLowerCase();
+  const seedAdminPassword = process.env.ADMIN_PASSWORD ?? process.env.SEED_ADMIN_PASSWORD;
   if (!seedAdminEmail || !seedAdminPassword) {
-    throw new Error('Defina SEED_ADMIN_EMAIL y SEED_ADMIN_PASSWORD para crear el administrador inicial.');
+    throw new Error('Defina ADMIN_EMAIL y ADMIN_PASSWORD para crear el administrador inicial.');
+  }
+  if (seedAdminPassword.length < 12) {
+    throw new Error('ADMIN_PASSWORD debe tener al menos 12 caracteres.');
   }
 
-  const adminName = process.env.SEED_ADMIN_NAME?.trim() || 'Administrador Clínica Keyser';
+  const adminName = (process.env.ADMIN_NAME ?? process.env.SEED_ADMIN_NAME)?.trim() || 'Administrador Clínica Keyser';
   const adminPasswordHash = await bcrypt.hash(seedAdminPassword, 12);
   const admin = await prisma.user.upsert({
     where: { email: seedAdminEmail },
