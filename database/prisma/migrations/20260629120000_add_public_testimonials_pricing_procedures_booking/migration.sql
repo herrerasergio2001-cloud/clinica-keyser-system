@@ -1,5 +1,5 @@
 -- CreateTable PublicTestimonial
-CREATE TABLE "PublicTestimonial" (
+CREATE TABLE IF NOT EXISTS "PublicTestimonial" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "quote" TEXT NOT NULL,
     "patientName" TEXT NOT NULL,
@@ -14,7 +14,7 @@ CREATE TABLE "PublicTestimonial" (
 );
 
 -- CreateTable PublicPricingPlan
-CREATE TABLE "PublicPricingPlan" (
+CREATE TABLE IF NOT EXISTS "PublicPricingPlan" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "name" TEXT NOT NULL UNIQUE,
     "kicker" TEXT NOT NULL,
@@ -33,7 +33,7 @@ CREATE TABLE "PublicPricingPlan" (
 );
 
 -- CreateTable PublicProcedure
-CREATE TABLE "PublicProcedure" (
+CREATE TABLE IF NOT EXISTS "PublicProcedure" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "name" TEXT NOT NULL,
     "description" TEXT NOT NULL,
@@ -47,7 +47,7 @@ CREATE TABLE "PublicProcedure" (
 );
 
 -- CreateTable PublicBookingRequest
-CREATE TABLE "PublicBookingRequest" (
+CREATE TABLE IF NOT EXISTS "PublicBookingRequest" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "service" TEXT NOT NULL,
     "requestedDate" TIMESTAMP(3) NOT NULL,
@@ -67,45 +67,46 @@ CREATE TABLE "PublicBookingRequest" (
 );
 
 -- CreateIndex PublicTestimonial_isActive_idx
-CREATE INDEX "PublicTestimonial_isActive_idx" ON "PublicTestimonial"("isActive");
+CREATE INDEX IF NOT EXISTS "PublicTestimonial_isActive_idx" ON "PublicTestimonial"("isActive");
 
 -- CreateIndex PublicTestimonial_sortOrder_idx
-CREATE INDEX "PublicTestimonial_sortOrder_idx" ON "PublicTestimonial"("sortOrder");
+CREATE INDEX IF NOT EXISTS "PublicTestimonial_sortOrder_idx" ON "PublicTestimonial"("sortOrder");
 
 -- CreateIndex PublicPricingPlan_isActive_idx
-CREATE INDEX "PublicPricingPlan_isActive_idx" ON "PublicPricingPlan"("isActive");
+CREATE INDEX IF NOT EXISTS "PublicPricingPlan_isActive_idx" ON "PublicPricingPlan"("isActive");
 
 -- CreateIndex PublicPricingPlan_category_idx
-CREATE INDEX "PublicPricingPlan_category_idx" ON "PublicPricingPlan"("category");
+CREATE INDEX IF NOT EXISTS "PublicPricingPlan_category_idx" ON "PublicPricingPlan"("category");
 
 -- CreateIndex PublicPricingPlan_sortOrder_idx
-CREATE INDEX "PublicPricingPlan_sortOrder_idx" ON "PublicPricingPlan"("sortOrder");
+CREATE INDEX IF NOT EXISTS "PublicPricingPlan_sortOrder_idx" ON "PublicPricingPlan"("sortOrder");
 
 -- CreateIndex PublicProcedure_isActive_idx
-CREATE INDEX "PublicProcedure_isActive_idx" ON "PublicProcedure"("isActive");
+CREATE INDEX IF NOT EXISTS "PublicProcedure_isActive_idx" ON "PublicProcedure"("isActive");
 
 -- CreateIndex PublicProcedure_specialty_idx
-CREATE INDEX "PublicProcedure_specialty_idx" ON "PublicProcedure"("specialty");
+CREATE INDEX IF NOT EXISTS "PublicProcedure_specialty_idx" ON "PublicProcedure"("specialty");
 
 -- CreateIndex PublicProcedure_sortOrder_idx
-CREATE INDEX "PublicProcedure_sortOrder_idx" ON "PublicProcedure"("sortOrder");
+CREATE INDEX IF NOT EXISTS "PublicProcedure_sortOrder_idx" ON "PublicProcedure"("sortOrder");
 
 -- CreateIndex PublicBookingRequest_status_idx
-CREATE INDEX "PublicBookingRequest_status_idx" ON "PublicBookingRequest"("status");
+CREATE INDEX IF NOT EXISTS "PublicBookingRequest_status_idx" ON "PublicBookingRequest"("status");
 
 -- CreateIndex PublicBookingRequest_patientEmail_idx
-CREATE INDEX "PublicBookingRequest_patientEmail_idx" ON "PublicBookingRequest"("patientEmail");
+CREATE INDEX IF NOT EXISTS "PublicBookingRequest_patientEmail_idx" ON "PublicBookingRequest"("patientEmail");
 
 -- CreateIndex PublicBookingRequest_requestedDate_idx
-CREATE INDEX "PublicBookingRequest_requestedDate_idx" ON "PublicBookingRequest"("requestedDate");
+CREATE INDEX IF NOT EXISTS "PublicBookingRequest_requestedDate_idx" ON "PublicBookingRequest"("requestedDate");
 
 -- CreateIndex PublicBookingRequest_createdAt_idx
-CREATE INDEX "PublicBookingRequest_createdAt_idx" ON "PublicBookingRequest"("createdAt");
+CREATE INDEX IF NOT EXISTS "PublicBookingRequest_createdAt_idx" ON "PublicBookingRequest"("createdAt");
 
 -- AlterTable PublicService
-ALTER TABLE "PublicService" ADD COLUMN "pricing" TEXT,
-ADD COLUMN "exclusiveTag" TEXT,
-ADD COLUMN "procedures" TEXT[] DEFAULT ARRAY[]::TEXT[];
+ALTER TABLE "PublicService"
+ADD COLUMN IF NOT EXISTS "pricing" TEXT,
+ADD COLUMN IF NOT EXISTS "exclusiveTag" TEXT,
+ADD COLUMN IF NOT EXISTS "procedures" TEXT[] DEFAULT ARRAY[]::TEXT[];
 
 -- AlterTable Appointment
 ALTER TABLE "Appointment"
