@@ -1,0 +1,42 @@
+{
+  "impl": {
+    "isParallel": false,
+    "isTransactional": true,
+    "warningCount": 0
+  },
+  "up": [
+    "-- CreateTable PublicTestimonial",
+    "CREATE TABLE \"PublicTestimonial\" (",
+    "    \"id\" TEXT NOT NULL PRIMARY KEY,",
+    "    \"quote\" TEXT NOT NULL,",
+    "    \"patientName\" TEXT NOT NULL,",
+    "    \"service\" TEXT NOT NULL,",
+    "    \"rating\" INTEGER NOT NULL DEFAULT 5,",
+    "    \"photoUrl\" TEXT,",
+    "    \"isActive\" BOOLEAN NOT NULL DEFAULT true,",
+    "    \"sortOrder\" INTEGER NOT NULL DEFAULT 0,",
+    "    \"verified\" BOOLEAN NOT NULL DEFAULT false,",
+    "    \"createdAt\" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,",
+    "    \"updatedAt\" TIMESTAMP(3) NOT NULL",
+    ");",
+    "",
+    "-- CreateTable PublicPricingPlan",
+    "CREATE TABLE \"PublicPricingPlan\" (",
+    "    \"id\" TEXT NOT NULL PRIMARY KEY,",
+    "    \"name\" TEXT NOT NULL UNIQUE,",
+    "    \"kicker\" TEXT NOT NULL,",
+    "    \"description\" TEXT NOT NULL,",
+    "    \"price\" TEXT NOT NULL,",
+    "    \"currency\" TEXT NOT NULL DEFAULT 'C$',",
+    "    \"unit\" TEXT NOT NULL,",
+    "    \"category\" TEXT NOT NULL DEFAULT 'medical',",
+    "    \"features\" TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[],",
+    "    \"isFeatured\" BOOLEAN NOT NULL DEFAULT false,",
+    "    \"isPopular\" BOOLEAN NOT NULL DEFAULT false,",
+    "    \"isActive\" BOOLEAN NOT NULL DEFAULT true,",
+    "    \"sortOrder\" INTEGER NOT NULL DEFAULT 0,",
+    "    \"createdAt\" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,",
+    "    \"updatedAt\" TIMESTAMP(3) NOT NULL",
+    ");"
+  ]
+}
