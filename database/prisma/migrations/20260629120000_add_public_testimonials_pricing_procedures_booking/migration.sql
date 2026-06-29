@@ -108,5 +108,24 @@ ADD COLUMN "exclusiveTag" TEXT,
 ADD COLUMN "procedures" TEXT[] DEFAULT ARRAY[]::TEXT[];
 
 -- AlterTable Appointment
-ALTER TABLE "Appointment" ADD COLUMN "source" TEXT NOT NULL DEFAULT 'IN_PERSON',
-ADD CONSTRAINT "Appointment_publicRequestId_key" UNIQUE("publicRequestId");
+ALTER TABLE "Appointment"
+ADD COLUMN IF NOT EXISTS "source" TEXT NOT NULL DEFAULT 'IN_PERSON',
+ADD COLUMN IF NOT EXISTS "publicRequestId" TEXT;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'Appointment_publicRequestId_key'
+    ) THEN
+        ALTER TABLE "Appointment"
+        ADD CONSTRAINT "Appointment_publicRequestId_key" UNIQUE ("publicRequestId");
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'Appointment_publicRequestId_fkey'
+    ) THEN
+        ALTER TABLE "Appointment"
+        ADD CONSTRAINT "Appointment_publicRequestId_fkey"
+        FOREIGN KEY ("publicRequestId") REFERENCES "PublicBookingRequest"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+    END IF;
+END $$;
